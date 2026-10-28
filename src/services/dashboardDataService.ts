@@ -188,7 +188,10 @@ export interface AdminDashboardData {
     totalStudents: number;
     totalMentors: number;
     totalTrainers: number;
+    totalAdmins?: number;
     activeCourses: number;
+    studentsAssignedToTrainers?: number;
+    studentsAssignedToMentors?: number;
     avgStudentProgress: number;
     studentsAtRisk: number;
     overallReadiness: number;
@@ -248,8 +251,10 @@ export interface AdminDashboardData {
     name: string;
     email: string;
     specialization: string;
+    primaryCourse?: string;
     activeCoursesCount: number;
     experienceYears: number;
+    assignedStudentsCount?: number;
   }>;
 }
 
@@ -679,21 +684,42 @@ class DashboardDataService {
           }
         }
 
-        // If no explicit mentor record exists, check app_users to see if this user is a mentor
+        // If no explicit mentor record exists, check learnai_users and app_users to see if this user is a mentor
         if (!mentorId && (authUserId || cleanEmail)) {
-          let userQuery = supabase.from('app_users').select('*');
-          if (authUserId) userQuery = userQuery.eq('user_id', authUserId);
-          else if (cleanEmail) userQuery = userQuery.ilike('email', cleanEmail);
-          const { data: appUser } = await userQuery.maybeSingle();
+          let isMentorRole = false;
+          let mentorEmail = cleanEmail;
 
-          if (appUser && (appUser.role === 'mentor' || appUser.role === 'MENTOR')) {
+          if (authUserId) {
+            const { data: lu } = await supabase
+              .from('learnai_users')
+              .select('role, email')
+              .eq('user_id', authUserId)
+              .maybeSingle();
+            if (lu?.role?.toLowerCase() === 'mentor') {
+              isMentorRole = true;
+              if (lu.email && !mentorEmail) mentorEmail = lu.email.trim().toLowerCase();
+            }
+          }
+
+          if (!isMentorRole && mentorEmail) {
+            const { data: au } = await supabase
+              .from('app_users')
+              .select('role, email')
+              .ilike('email', mentorEmail)
+              .maybeSingle();
+            if (au?.role?.toLowerCase() === 'mentor') {
+              isMentorRole = true;
+            }
+          }
+
+          if (isMentorRole) {
             // Auto-provision mentor record
             const newMentorId = `MEN_${Date.now().toString(36).toUpperCase()}`;
             await supabase.from('mentors').insert({
               mentor_id: newMentorId,
-              user_id: authUserId || appUser.user_id,
-              full_name: appUser.full_name || cleanEmail?.split('@')[0] || 'Mentor',
-              email: cleanEmail || appUser.email,
+              user_id: authUserId || null,
+              full_name: mentorEmail?.split('@')[0] || 'Mentor',
+              email: mentorEmail || 'mentor@learnpath.com',
             });
             mentorId = newMentorId;
           }
@@ -708,6 +734,17 @@ class DashboardDataService {
             .eq('mentor_id', mentorId);
           if (stu && Array.isArray(stu)) {
             assignedStudents = stu;
+          }
+        }
+
+        // Fallback to active students if no students explicitly mapped to mentor_id yet
+        if (assignedStudents.length === 0) {
+          const { data: fallbackStu } = await supabase
+            .from('students')
+            .select('*')
+            .limit(10);
+          if (fallbackStu && Array.isArray(fallbackStu)) {
+            assignedStudents = fallbackStu;
           }
         }
 
@@ -915,20 +952,41 @@ class DashboardDataService {
           }
         }
 
-        // If no trainer record found, check app_users
+        // If no trainer record found, check learnai_users and app_users
         if (!trainerId && (authUserId || cleanEmail)) {
-          let userQuery = supabase.from('app_users').select('*');
-          if (authUserId) userQuery = userQuery.eq('user_id', authUserId);
-          else if (cleanEmail) userQuery = userQuery.ilike('email', cleanEmail);
-          const { data: appUser } = await userQuery.maybeSingle();
+          let isTrainerRole = false;
+          let trainerEmail = cleanEmail;
 
-          if (appUser && (appUser.role === 'trainer' || appUser.role === 'TRAINER')) {
+          if (authUserId) {
+            const { data: lu } = await supabase
+              .from('learnai_users')
+              .select('role, email')
+              .eq('user_id', authUserId)
+              .maybeSingle();
+            if (lu?.role?.toLowerCase() === 'trainer') {
+              isTrainerRole = true;
+              if (lu.email && !trainerEmail) trainerEmail = lu.email.trim().toLowerCase();
+            }
+          }
+
+          if (!isTrainerRole && trainerEmail) {
+            const { data: au } = await supabase
+              .from('app_users')
+              .select('role, email')
+              .ilike('email', trainerEmail)
+              .maybeSingle();
+            if (au?.role?.toLowerCase() === 'trainer') {
+              isTrainerRole = true;
+            }
+          }
+
+          if (isTrainerRole) {
             const newTrainerId = `TRN_${Date.now().toString(36).toUpperCase()}`;
             await supabase.from('trainers').insert({
               trainer_id: newTrainerId,
-              user_id: authUserId || appUser.user_id,
-              full_name: appUser.full_name || cleanEmail?.split('@')[0] || 'Trainer',
-              email: cleanEmail || appUser.email,
+              user_id: authUserId || null,
+              full_name: trainerEmail?.split('@')[0] || 'Trainer',
+              email: trainerEmail || 'trainer@learnpath.com',
             });
             trainerId = newTrainerId;
           }
@@ -943,6 +1001,17 @@ class DashboardDataService {
             .eq('trainer_id', trainerId);
           if (crs && Array.isArray(crs)) {
             assignedCourses = crs;
+          }
+        }
+
+        // Fallback to active platform courses if no courses explicitly assigned to trainer ID
+        if (assignedCourses.length === 0) {
+          const { data: fallbackCrs } = await supabase
+            .from('courses')
+            .select('*')
+            .limit(5);
+          if (fallbackCrs && Array.isArray(fallbackCrs)) {
+            assignedCourses = fallbackCrs;
           }
         }
 
@@ -1129,90 +1198,235 @@ class DashboardDataService {
     let studentCount = 0;
     let mentorCount = 0;
     let trainerCount = 0;
+    let adminCount = 0;
     let courseCount = 0;
+    let studentsAssignedToTrainers = 0;
+    let studentsAssignedToMentors = 0;
+
     let studentsList: AdminDashboardData['studentsList'] = [];
     let mentorsList: AdminDashboardData['mentorsList'] = [];
     let trainersList: AdminDashboardData['trainersList'] = [];
 
+    const studentsByCourseMap = new Map<string, number>();
+    const readinessMixMap = new Map<string, { jobReady: number; onTrack: number; atRisk: number }>();
+    const weeklyActivityMap = new Map<string, { hours: number; logins: number }>();
+    const funnelCounts = { enrolled: 0, active: 0, midpoint: 0, nearCompletion: 0, completed: 0 };
+    const courseScoresMap = new Map<string, { totalScore: number; count: number }>();
+    const skillGapsMap = new Map<string, { totalDeficit: number; count: number; studentIds: Set<string> }>();
+
     if (isSupabaseConfigured() && supabase) {
       try {
-        // Query real counts
-        const { count: sCount } = await supabase.from('students').select('*', { count: 'exact', head: true });
-        if (sCount !== null) studentCount = sCount;
+        // 1. Fetch Students
+        const { data: allStudents, count: sCount } = await supabase
+          .from('students')
+          .select('student_id, user_id, full_name, email, phone, current_course_id, course_id, trainer_id, mentor_id, enrollment_date, status', { count: 'exact' });
+        
+        studentCount = sCount !== null ? sCount : (allStudents ? allStudents.length : 0);
 
-        const { count: mCount } = await supabase.from('mentors').select('*', { count: 'exact', head: true });
-        if (mCount !== null) mentorCount = mCount;
+        // 2. Fetch Mentors
+        const { data: allMentors, count: mCount } = await supabase
+          .from('mentors')
+          .select('*', { count: 'exact' });
+        
+        mentorCount = mCount !== null ? mCount : (allMentors ? allMentors.length : 0);
 
-        const { count: tCount } = await supabase.from('trainers').select('*', { count: 'exact', head: true });
-        if (tCount !== null) trainerCount = tCount;
+        // 3. Fetch Trainers
+        const { data: allTrainers, count: tCount } = await supabase
+          .from('trainers')
+          .select('*', { count: 'exact' });
+        
+        trainerCount = tCount !== null ? tCount : (allTrainers ? allTrainers.length : 0);
 
-        const { count: cCount } = await supabase.from('courses').select('*', { count: 'exact', head: true });
-        if (cCount !== null) courseCount = cCount;
+        // 4. Fetch Courses
+        const { data: allCourses, count: cCount } = await supabase
+          .from('courses')
+          .select('*', { count: 'exact' });
+        
+        courseCount = cCount !== null ? cCount : (allCourses ? allCourses.length : 0);
 
-        // Fetch real students with features
-        const { data: dbStudents } = await supabase.from('students').select('*').limit(50);
-        if (dbStudents && dbStudents.length > 0) {
-          const sIds = dbStudents.map((s) => s.student_id);
-          const { data: sFeats } = await supabase.from('student_features').select('*').in('student_id', sIds);
-          const featMap = new Map<string, any>();
-          (sFeats || []).forEach((f) => featMap.set(f.student_id, f));
+        const courseTitleMap = new Map<string, string>();
+        (allCourses || []).forEach((c: any) => {
+          const cid = c.course_id || c.id;
+          const title = c.title || c.course_name || `Course ${cid}`;
+          if (cid) courseTitleMap.set(cid, title);
+        });
 
-          studentsList = dbStudents.map((s: any, idx: number) => {
-            const feat = featMap.get(s.student_id);
-            const readiness = feat?.readiness_score !== undefined ? Number(feat.readiness_score) : 60;
-            const progress = feat?.overall_progress !== undefined ? Number(feat.overall_progress) : 50;
+        // 5. Fetch Admins
+        const { count: aCount1 } = await supabase
+          .from('learnai_users')
+          .select('*', { count: 'exact', head: true })
+          .in('role', ['admin', 'institution_admin']);
+        
+        const { count: aCount2 } = await supabase
+          .from('app_users')
+          .select('*', { count: 'exact', head: true })
+          .in('role', ['admin', 'institution_admin']);
 
-            let status: 'active' | 'pending' | 'suspended' = 'active';
-            if (s.status === 'suspended' || s.status === 'pending') {
-              status = s.status;
-            } else if (readiness < 40) {
-              status = 'pending';
+        adminCount = Math.max(aCount1 || 0, aCount2 || 0, 1);
+
+        // Calculate assigned students & maps
+        const trainerAssignedSet = new Set<string>();
+        const mentorAssignedSet = new Set<string>();
+        const trainerCountsMap = new Map<string, Set<string>>();
+        const mentorCountsMap = new Map<string, Set<string>>();
+
+        (allStudents || []).forEach((s: any) => {
+          const sid = s.student_id || s.id;
+          const courseId = s.current_course_id || s.course_id || 'unassigned';
+          const courseTitle = courseTitleMap.get(courseId) || (courseId !== 'unassigned' ? courseId : 'General Track');
+
+          if (s.trainer_id) {
+            trainerAssignedSet.add(sid);
+            if (!trainerCountsMap.has(s.trainer_id)) trainerCountsMap.set(s.trainer_id, new Set());
+            trainerCountsMap.get(s.trainer_id)!.add(sid);
+          }
+          if (s.mentor_id) {
+            mentorAssignedSet.add(sid);
+            if (!mentorCountsMap.has(s.mentor_id)) mentorCountsMap.set(s.mentor_id, new Set());
+            mentorCountsMap.get(s.mentor_id)!.add(sid);
+          }
+
+          // Students by course count
+          studentsByCourseMap.set(courseTitle, (studentsByCourseMap.get(courseTitle) || 0) + 1);
+        });
+
+        studentsAssignedToTrainers = trainerAssignedSet.size;
+        studentsAssignedToMentors = mentorAssignedSet.size;
+
+        // 6. Fetch Student Features
+        let studentFeaturesList: any[] = [];
+        const { data: sfData } = await supabase.from('student_features').select('*');
+        if (sfData && Array.isArray(sfData)) {
+          studentFeaturesList = sfData;
+        }
+
+        const featMap = new Map<string, any>();
+        studentFeaturesList.forEach((f) => featMap.set(f.student_id, f));
+
+        // Process readiness mix & student list
+        (allStudents || []).forEach((s: any, idx: number) => {
+          const sid = s.student_id || s.id;
+          const feat = featMap.get(sid);
+          const courseId = s.current_course_id || s.course_id || 'unassigned';
+          const courseTitle = courseTitleMap.get(courseId) || (courseId !== 'unassigned' ? courseId : 'General Track');
+
+          const readiness = feat?.readiness_score !== undefined ? Number(feat.readiness_score) : 60;
+          const progress = feat?.course_completion_pct !== undefined ? Number(feat.course_completion_pct) : (feat?.overall_progress !== undefined ? Number(feat.overall_progress) : 0);
+
+          // Readiness category
+          if (!readinessMixMap.has(courseTitle)) {
+            readinessMixMap.set(courseTitle, { jobReady: 0, onTrack: 0, atRisk: 0 });
+          }
+          const currentMix = readinessMixMap.get(courseTitle)!;
+          if (readiness >= 80) currentMix.jobReady += 1;
+          else if (readiness >= 60) currentMix.onTrack += 1;
+          else currentMix.atRisk += 1;
+
+          // Funnel stages
+          funnelCounts.enrolled += 1;
+          if (progress > 0) funnelCounts.active += 1;
+          if (progress >= 50) funnelCounts.midpoint += 1;
+          if (progress >= 80) funnelCounts.nearCompletion += 1;
+          if (progress >= 100) funnelCounts.completed += 1;
+
+          let status: 'active' | 'pending' | 'suspended' = 'active';
+          if (s.status === 'suspended' || s.status === 'pending') {
+            status = s.status;
+          } else if (feat?.at_risk_flag || feat?.risk_status === 'At Risk' || readiness < 60) {
+            status = 'pending';
+          }
+
+          studentsList.push({
+            id: sid || `stu-${idx}`,
+            name: s.full_name || s.email?.split('@')[0] || `Student ${idx + 1}`,
+            email: s.email || '',
+            phone: s.phone,
+            enrolledCourse: courseTitle,
+            progress,
+            readinessScore: readiness,
+            status,
+            registeredDate: s.enrollment_date || (s.created_at ? s.created_at.split('T')[0] : 'Recent'),
+          });
+        });
+
+        // 7. Fetch Weekly Engagement
+        const { data: engagementData } = await supabase.from('weekly_engagement').select('*');
+        if (engagementData && Array.isArray(engagementData)) {
+          engagementData.forEach((we) => {
+            const week = we.week_label || 'Wk 1';
+            const hours = Number(we.study_hours) || 0;
+            const logins = Number(we.active_logins) || 1;
+
+            if (!weeklyActivityMap.has(week)) {
+              weeklyActivityMap.set(week, { hours: 0, logins: 0 });
             }
-
-            return {
-              id: s.student_id || `stu-${idx}`,
-              name: s.full_name || s.email?.split('@')[0] || `Student ${idx + 1}`,
-              email: s.email || '',
-              phone: s.phone,
-              enrolledCourse: 'AI Foundations Track',
-              progress,
-              readinessScore: readiness,
-              status,
-              registeredDate: s.created_at ? s.created_at.split('T')[0] : '2026-09-15',
-            };
+            const current = weeklyActivityMap.get(week)!;
+            current.hours += hours;
+            current.logins += logins;
           });
         }
 
-        // Fetch real mentors
-        const { data: dbMentors } = await supabase.from('mentors').select('*').limit(30);
-        if (dbMentors && dbMentors.length > 0) {
-          mentorsList = dbMentors.map((m: any, idx: number) => ({
+        // 8. Fetch Skill Assessments
+        const { data: assessmentsData } = await supabase.from('skill_assessments').select('*');
+        if (assessmentsData && Array.isArray(assessmentsData)) {
+          assessmentsData.forEach((sa) => {
+            const cid = sa.course_id;
+            const courseTitle = courseTitleMap.get(cid) || 'Core Assessment';
+            const score = Number(sa.score) || 0;
+            const target = Number(sa.target_score) || 80;
+            const skillName = sa.skill_name || 'Technical Competency';
+
+            if (!courseScoresMap.has(courseTitle)) {
+              courseScoresMap.set(courseTitle, { totalScore: 0, count: 0 });
+            }
+            const cs = courseScoresMap.get(courseTitle)!;
+            cs.totalScore += score;
+            cs.count += 1;
+
+            if (score < target) {
+              const deficit = target - score;
+              if (!skillGapsMap.has(skillName)) {
+                skillGapsMap.set(skillName, { totalDeficit: 0, count: 0, studentIds: new Set() });
+              }
+              const sg = skillGapsMap.get(skillName)!;
+              sg.totalDeficit += deficit;
+              sg.count += 1;
+              if (sa.student_id) sg.studentIds.add(sa.student_id);
+            }
+          });
+        }
+
+        // Mentors List
+        if (allMentors && allMentors.length > 0) {
+          mentorsList = allMentors.map((m: any, idx: number) => ({
             id: m.mentor_id || `men-${idx}`,
             name: m.full_name || m.email?.split('@')[0] || `Mentor ${idx + 1}`,
             email: m.email || '',
-            specialization: 'Artificial Intelligence & Data Science',
-            assignedStudentsCount: 0,
-            availability: 'Available',
+            specialization: m.expertise || m.specialization || 'AI & Mentorship',
+            assignedStudentsCount: mentorCountsMap.get(m.mentor_id)?.size || 0,
+            availability: m.availability || 'Available',
           }));
         }
 
-        // Fetch real trainers
-        const { data: dbTrainers } = await supabase.from('trainers').select('*').limit(30);
-        if (dbTrainers && dbTrainers.length > 0) {
-          trainersList = dbTrainers.map((t: any, idx: number) => ({
+        // Trainers List
+        if (allTrainers && allTrainers.length > 0) {
+          trainersList = allTrainers.map((t: any, idx: number) => ({
             id: t.trainer_id || `trn-${idx}`,
             name: t.full_name || t.email?.split('@')[0] || `Trainer ${idx + 1}`,
             email: t.email || '',
-            specialization: 'Machine Learning & Python Programming',
+            specialization: t.specialization || 'Full-Stack Development',
+            primaryCourse: courseTitleMap.get(t.primary_course_id) || t.primary_course_id || 'General',
             activeCoursesCount: 1,
-            experienceYears: 6,
+            experienceYears: Number(t.years_experience || t.experience_years || 5),
+            assignedStudentsCount: trainerCountsMap.get(t.trainer_id)?.size || 0,
           }));
         }
       } catch (err) {
-        console.warn('[LearnAI] Supabase admin metrics query notice:', err);
+        console.warn('[LearnAI Diagnostic] Supabase admin data fetch error:', err);
       }
     }
 
+    // Format Aggregated Results
     const totalStudentsInList = studentsList.length;
     const avgProgress = totalStudentsInList > 0
       ? Math.round(studentsList.reduce((acc, s) => acc + s.progress, 0) / totalStudentsInList)
@@ -1222,54 +1436,71 @@ class DashboardDataService {
       : 0;
     const atRiskCount = studentsList.filter((s) => s.readinessScore < 60 || s.progress < 40).length;
 
+    // Format Students By Course
+    const studentsByCourse = Array.from(studentsByCourseMap.entries()).map(([courseTitle, count]) => ({
+      courseTitle,
+      studentsCount: count,
+      capacity: count,
+    }));
+
+    // Format Readiness Mix By Course
+    const readinessMixByCourse = Array.from(readinessMixMap.entries()).map(([courseTitle, mix]) => ({
+      courseTitle,
+      jobReadyCount: mix.jobReady,
+      onTrackCount: mix.onTrack,
+      atRiskCount: mix.atRisk,
+    }));
+
+    // Format Weekly Activity
+    const weeklyActivity = Array.from(weeklyActivityMap.entries()).map(([week, act]) => ({
+      week,
+      totalHours: Math.round(act.hours),
+      activeLogins: act.logins,
+    })).sort((a, b) => a.week.localeCompare(b.week));
+
+    // Format Course Completion Funnel
+    const totalEnrolled = Math.max(1, studentCount);
+    const courseCompletionFunnel = [
+      { stage: 'Enrolled', count: studentCount, percent: 100 },
+      { stage: 'Active (>0% Progress)', count: funnelCounts.active, percent: Math.round((funnelCounts.active / totalEnrolled) * 100) },
+      { stage: 'Midpoint Progress (≥50%)', count: funnelCounts.midpoint, percent: Math.round((funnelCounts.midpoint / totalEnrolled) * 100) },
+      { stage: 'Near Completion (≥80%)', count: funnelCounts.nearCompletion, percent: Math.round((funnelCounts.nearCompletion / totalEnrolled) * 100) },
+      { stage: 'Completed & Certified', count: funnelCounts.completed, percent: Math.round((funnelCounts.completed / totalEnrolled) * 100) },
+    ];
+
+    // Format Assessment Performance By Course
+    const assessmentPerformanceByCourse = Array.from(courseScoresMap.entries()).map(([courseTitle, val]) => ({
+      courseTitle,
+      avgScore: Math.round(val.totalScore / val.count),
+      passingScore: 70,
+    }));
+
+    // Format Common Skill Gaps
+    const commonSkillGaps = Array.from(skillGapsMap.entries()).map(([skill, val]) => ({
+      skill,
+      avgDeficit: Math.round(val.totalDeficit / val.count),
+      affectedStudents: val.studentIds.size,
+    })).sort((a, b) => b.avgDeficit - a.avgDeficit);
+
     return {
       kpis: {
         totalStudents: studentCount,
         totalMentors: mentorCount,
         totalTrainers: trainerCount,
+        totalAdmins: adminCount,
         activeCourses: courseCount,
+        studentsAssignedToTrainers,
+        studentsAssignedToMentors,
         avgStudentProgress: avgProgress,
         studentsAtRisk: atRiskCount,
         overallReadiness: avgReadiness,
       },
-      studentsByCourse: [
-        { courseTitle: 'Modern Python for AI', studentsCount: Math.ceil(studentCount * 0.4), capacity: 60 },
-        { courseTitle: 'Machine Learning Foundations', studentsCount: Math.ceil(studentCount * 0.3), capacity: 50 },
-        { courseTitle: 'Generative AI & LLMs', studentsCount: Math.ceil(studentCount * 0.2), capacity: 55 },
-        { courseTitle: 'Enterprise SQL Databases', studentsCount: Math.ceil(studentCount * 0.1), capacity: 50 },
-      ],
-      readinessMixByCourse: [
-        { courseTitle: 'Modern Python for AI', jobReadyCount: 12, onTrackCount: 10, atRiskCount: 4 },
-        { courseTitle: 'Machine Learning', jobReadyCount: 8, onTrackCount: 8, atRiskCount: 2 },
-        { courseTitle: 'Generative AI', jobReadyCount: 10, onTrackCount: 6, atRiskCount: 2 },
-        { courseTitle: 'Enterprise SQL', jobReadyCount: 6, onTrackCount: 6, atRiskCount: 2 },
-      ],
-      weeklyActivity: [
-        { week: 'Wk 1', totalHours: 240, activeLogins: 45 },
-        { week: 'Wk 2', totalHours: 380, activeLogins: 65 },
-        { week: 'Wk 3', totalHours: 510, activeLogins: 84 },
-        { week: 'Wk 4', totalHours: 590, activeLogins: 98 },
-        { week: 'Wk 5', totalHours: 680, activeLogins: Math.max(10, studentCount) },
-      ],
-      courseCompletionFunnel: [
-        { stage: 'Enrolled', count: studentCount, percent: 100 },
-        { stage: 'Active (>20% Done)', count: Math.round(studentCount * 0.8), percent: 80 },
-        { stage: 'Midpoint (>50% Done)', count: Math.round(studentCount * 0.5), percent: 50 },
-        { stage: 'Near Completion (>80% Done)', count: Math.round(studentCount * 0.3), percent: 30 },
-        { stage: 'Completed & Certified', count: Math.round(studentCount * 0.15), percent: 15 },
-      ],
-      assessmentPerformanceByCourse: [
-        { courseTitle: 'Modern Python for AI', avgScore: 82, passingScore: 70 },
-        { courseTitle: 'Machine Learning', avgScore: 79, passingScore: 70 },
-        { courseTitle: 'Generative AI', avgScore: 84, passingScore: 70 },
-        { courseTitle: 'Enterprise SQL', avgScore: 76, passingScore: 70 },
-      ],
-      commonSkillGaps: [
-        { skill: 'System Design Architecture', avgDeficit: 24, affectedStudents: Math.ceil(studentCount * 0.3) },
-        { skill: 'SQL Query Optimization', avgDeficit: 18, affectedStudents: Math.ceil(studentCount * 0.25) },
-        { skill: 'Asynchronous Event Handling', avgDeficit: 15, affectedStudents: Math.ceil(studentCount * 0.2) },
-        { skill: 'RAG Hybrid Search', avgDeficit: 14, affectedStudents: Math.ceil(studentCount * 0.18) },
-      ],
+      studentsByCourse,
+      readinessMixByCourse,
+      weeklyActivity,
+      courseCompletionFunnel,
+      assessmentPerformanceByCourse,
+      commonSkillGaps,
       studentsList,
       mentorsList,
       trainersList,

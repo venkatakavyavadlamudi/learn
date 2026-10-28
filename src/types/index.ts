@@ -4,15 +4,13 @@
  */
 
 export type UserRole =
-  | 'super_admin'
-  | 'Super Admin'
   | 'institution_admin'
   | 'student'
   | 'Student'
   | 'public_user'
   | 'mentor'
   | 'trainer'
-  | 'admin'; // backward-compatible alias for super_admin
+  | 'admin';
 
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'active';
 export type InstitutionStatus = 'Pending Approval' | 'Active' | 'Rejected';
@@ -168,7 +166,7 @@ export interface AdminProfile {
   userId: string;
   fullName: string;
   email: string;
-  role: 'super_admin' | 'institution_admin' | 'admin';
+  role: 'institution_admin' | 'admin';
   Organization_ID?: string | null;
   organizationName?: string;
   createdAt: string;

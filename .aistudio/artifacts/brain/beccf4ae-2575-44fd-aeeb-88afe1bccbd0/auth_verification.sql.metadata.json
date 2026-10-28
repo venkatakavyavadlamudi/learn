@@ -1,0 +1,5 @@
+{
+  "summary":  "SQL verification queries and testing procedures for the LearnAI signup and role-resolution flow. Includes schema checks, RLS policy verification, and manual test cases for various scenarios.",
+  "updatedAt":  "2026-10-28T18:30:27.895392462Z",
+  "userFacing":  true
+}

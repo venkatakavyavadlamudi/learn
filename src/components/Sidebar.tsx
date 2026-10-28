@@ -102,10 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   if (!currentUser) return null;
 
   const roleNormalized = String(currentUser.role || 'student').toLowerCase();
-  const isSuperAdmin =
-    roleNormalized === 'super_admin' || roleNormalized === 'super admin' || roleNormalized.includes('super');
   const isAdmin =
-    isSuperAdmin ||
     roleNormalized === 'admin' ||
     roleNormalized === 'institution_admin' ||
     roleNormalized === 'institution admin';
@@ -115,7 +112,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Clean, displayable role label (Strictly NO internal role codes or "Public Learner" / "Public Student")
   const getRoleDisplayName = () => {
-    if (isSuperAdmin) return 'Super Admin';
     if (isAdmin) return 'Institution Admin';
     if (isTrainer) return 'Trainer';
     if (isMentor) return 'Mentor';
@@ -250,6 +246,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
+      title: 'Dev Previews',
+      items: [
+        { id: 'preview_trainer', label: 'Preview Trainer Portal', icon: GraduationCap },
+        { id: 'preview_mentor', label: 'Preview Mentor Portal', icon: Award },
+      ],
+    },
+    {
       title: 'User Management',
       items: [
         { id: 'students', label: 'Students', icon: Users },
@@ -297,9 +300,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     : studentMenuGroups;
 
   const handleNavClick = (itemId: string) => {
-    // If user clicked profile, route or select
     if (itemId === 'my_profile') {
       navigate('/profile');
+      if (onCloseMobile) onCloseMobile();
+      return;
+    }
+    if (itemId === 'preview_trainer') {
+      navigate('/trainer');
+      if (onCloseMobile) onCloseMobile();
+      return;
+    }
+    if (itemId === 'preview_mentor') {
+      navigate('/mentor');
       if (onCloseMobile) onCloseMobile();
       return;
     }

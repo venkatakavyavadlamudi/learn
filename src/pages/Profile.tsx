@@ -80,9 +80,7 @@ export const Profile: React.FC = () => {
 
   const roleNormalized = String(currentUser.role || '').toLowerCase();
   const roleLabel =
-    roleNormalized === 'super_admin' || roleNormalized === 'super admin' || roleNormalized.includes('super')
-      ? 'Super Admin'
-      : roleNormalized === 'admin' || roleNormalized === 'institution_admin' || roleNormalized === 'institution admin'
+    roleNormalized === 'admin' || roleNormalized === 'institution_admin' || roleNormalized === 'institution admin'
       ? 'Institution Admin'
       : roleNormalized === 'mentor'
       ? 'Mentor'

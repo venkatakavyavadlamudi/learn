@@ -18,6 +18,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminSetup } from './pages/AdminSetup';
 import { TrainerDashboard } from './pages/TrainerDashboard';
 import { MentorDashboard } from './pages/MentorDashboard';
+import { ResetPassword } from './pages/ResetPassword';
 import { Sparkles, ArrowLeft } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -36,6 +37,8 @@ const MainContent: React.FC = () => {
         return <Login />;
       case '/signup':
         return <Signup />;
+      case '/reset-password':
+        return <ResetPassword />;
       case '/admin-setup':
         return <AdminSetup />;
       case '/dashboard':

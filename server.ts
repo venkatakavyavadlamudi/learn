@@ -29,26 +29,29 @@ async function syncRoleToSupabase(userId: string, newRole: string, email?: strin
   if (!serverSupabase) return;
   try {
     const now = new Date().toISOString();
-    // 1. Try update in learnai_users by user_id
-    if (userId) {
-      await serverSupabase
-        .from('learnai_users')
-        .update({ role: newRole, updated_at: now })
-        .eq('user_id', userId);
-    }
+    const cleanRole = String(newRole).toLowerCase().trim();
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
 
-    // 2. Try update in learnai_users and app_users by email
-    if (email) {
-      const cleanEmail = email.trim().toLowerCase();
-      await serverSupabase
-        .from('learnai_users')
-        .update({ role: newRole, updated_at: now })
-        .eq('email', cleanEmail);
-
+    if (cleanEmail) {
       await serverSupabase
         .from('app_users')
-        .update({ role: newRole, updated_at: now })
+        .update({ role: cleanRole, updated_at: now })
         .eq('email', cleanEmail);
+
+      await serverSupabase.from('learnai_users').upsert(
+        {
+          user_id: userId || null,
+          email: cleanEmail,
+          role: cleanRole,
+          updated_at: now,
+        },
+        { onConflict: 'email' }
+      );
+    } else if (userId) {
+      await serverSupabase
+        .from('learnai_users')
+        .update({ role: cleanRole, updated_at: now })
+        .eq('user_id', userId);
     }
   } catch (sbErr) {
     console.warn('[LearnAI Server] Supabase role sync notice:', sbErr);
@@ -315,24 +318,30 @@ async function startServer() {
         });
 
         if (data?.user) {
+          const { data: appUser } = await serverSupabase
+            .from('app_users')
+            .select('*')
+            .eq('email', cleanEmail)
+            .limit(1);
+
           const { data: lu } = await serverSupabase
             .from('learnai_users')
             .select('*')
-            .eq('user_id', data.user.id)
-            .maybeSingle();
+            .or(`email.eq.${cleanEmail},user_id.eq.${data.user.id}`)
+            .limit(1);
 
-          const role = lu?.role || data.user.user_metadata?.role || 'student';
+          const role = appUser?.[0]?.role || lu?.[0]?.role || data.user.user_metadata?.role || 'student';
           return res.json({
             success: true,
             user: {
               userId: data.user.id,
               email: data.user.email || cleanEmail,
-              name: lu?.full_name || data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
+              name: appUser?.[0]?.full_name || lu?.[0]?.full_name || data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
               role,
-              status: lu?.status || 'active',
+              status: appUser?.[0]?.status || lu?.[0]?.status || 'active',
               emailVerified: Boolean(data.user.email_confirmed_at),
               profile: {
-                fullName: lu?.full_name || cleanEmail.split('@')[0],
+                fullName: appUser?.[0]?.full_name || lu?.[0]?.full_name || cleanEmail.split('@')[0],
                 email: cleanEmail,
               },
             },
@@ -387,17 +396,49 @@ async function startServer() {
   // ADMIN-ONLY REGISTRATION REVIEW & VERIFICATION CODES
   // ========================================================
 
-  // Middleware: verify admin role header or request
-  const verifyAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const adminEmail = req.headers['x-admin-email'] as string;
+  // Middleware: verify admin role header and database permissions
+  const verifyAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const adminEmail = (req.headers['x-admin-email'] as string)?.trim().toLowerCase();
     if (!adminEmail) {
+      return res.status(401).json({ success: false, error: 'Authentication required: Missing administrator email header.' });
+    }
+
+    // 1. Check local backend database
+    const localUser = backendDb.getUserByEmail(adminEmail);
+    if (localUser && (localUser.role === 'admin' || localUser.role === 'super_admin' || localUser.role === 'institution_admin')) {
       return next();
     }
-    const user = backendDb.getUserByEmail(adminEmail);
-    if (!user || (user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'institution_admin')) {
-      return res.status(403).json({ error: 'Access forbidden: Administrator privilege required.' });
+
+    // 2. Check Supabase database if configured
+    if (serverSupabase) {
+      try {
+        const { data: lu } = await serverSupabase
+          .from('learnai_users')
+          .select('role')
+          .ilike('email', adminEmail)
+          .limit(1);
+
+        const luRole = lu?.[0]?.role ? String(lu[0].role).toLowerCase().trim() : null;
+        if (luRole === 'admin' || luRole === 'super_admin' || luRole === 'institution_admin' || luRole === 'super admin') {
+          return next();
+        }
+
+        const { data: appU } = await serverSupabase
+          .from('app_users')
+          .select('role')
+          .ilike('email', adminEmail)
+          .limit(1);
+
+        const appRole = appU?.[0]?.role ? String(appU[0].role).toLowerCase().trim() : null;
+        if (appRole === 'admin' || appRole === 'super_admin' || appRole === 'institution_admin' || appRole === 'super admin') {
+          return next();
+        }
+      } catch (err: any) {
+        console.warn('[LearnAI Security] Server verifyAdmin database check warning:', err?.message);
+      }
     }
-    next();
+
+    return res.status(403).json({ success: false, error: 'Access forbidden: Account does not have administrator privileges.' });
   };
 
   // Get pending registrations

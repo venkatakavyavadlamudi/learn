@@ -12,6 +12,7 @@ import { CourseModal } from '../components/CourseModal';
 import { askAiAssistant, ChatMessage } from '../services/geminiService';
 import { AccountGatekeeper } from '../components/AccountGatekeeper';
 import { Sidebar } from '../components/Sidebar';
+import { supabase } from '../services/supabaseClient';
 import { KpiCard } from '../components/dashboard/KpiCard';
 import { ReadinessGauge } from '../components/dashboard/ReadinessGauge';
 import { SkillsComparisonChart } from '../components/dashboard/SkillsComparisonChart';
@@ -57,14 +58,75 @@ import {
 export const Dashboard: React.FC = () => {
   const { navigate } = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(authService.getCurrentUser());
+  const [isCheckingRole, setIsCheckingRole] = useState(true);
+  const [roleError, setRoleError] = useState<string | null>(null);
+
+  const performRoleCheck = async (userToTest: User) => {
+    setIsCheckingRole(true);
+    setRoleError(null);
+    try {
+      // FIX: Use userToTest.userId (which should be the Supabase auth UUID).
+      // If userToTest.id is also the UUID, use that, but ensure it's not a generated usr_ ID.
+      // If we encounter a 'usr_' ID, it means the local session is stale or incorrect.
+      // We should attempt to ignore it and use the actual Supabase user if possible.
+      let supabaseUuid = userToTest.userId || userToTest.id;
+      
+      if (typeof supabaseUuid === 'string' && supabaseUuid.startsWith('usr_')) {
+        console.warn('[LearnAI] Stale or invalid user ID detected, attempting to recover session UUID...');
+        if (!supabase) throw new Error('Authentication database is not configured.');
+        const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
+        
+        if (supabaseUser) {
+          supabaseUuid = supabaseUser.id;
+        } else {
+          console.warn('[LearnAI] Failed to recover Supabase user from stale session. Redirecting to login.');
+          await authService.logout();
+          navigate('/login');
+          return;
+        }
+      }
+
+      const authRole = await authService.fetchAuthoritativeRole(supabaseUuid, userToTest.email);
+      const roleToUse = String(authRole || '').toLowerCase().trim();
+
+      if (roleToUse === 'mentor') {
+        navigate('/mentor');
+        return;
+      }
+      if (roleToUse === 'trainer') {
+        navigate('/trainer');
+        return;
+      }
+      if (
+        roleToUse === 'admin' ||
+        roleToUse === 'institution_admin' ||
+        roleToUse.includes('admin')
+      ) {
+        navigate('/admin');
+        return;
+      }
+      if (roleToUse === 'student') {
+        setCurrentUser({ ...userToTest, role: 'student' as any });
+        setIsCheckingRole(false);
+        return;
+      }
+
+      setRoleError(`Unrecognized user role '${roleToUse}'. Please contact administrator.`);
+      setIsCheckingRole(false);
+    } catch (err: any) {
+      console.error('[LearnAI] Role check failure in Dashboard:', err);
+      setRoleError(err?.message || 'Your account was not found in the user role table. Please contact the administrator.');
+      setIsCheckingRole(false);
+    }
+  };
 
   useEffect(() => {
     const user = authService.getCurrentUser();
     if (!user) {
       navigate('/login');
-    } else {
-      setCurrentUser(user);
+      return;
     }
+    performRoleCheck(user);
   }, [navigate]);
 
   // Sidebar navigation active state
@@ -172,6 +234,81 @@ export const Dashboard: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [interviewStarted, interviewTimer, interviewFeedback]);
+
+  const handleCompleteRegistration = async () => {
+    setIsCheckingRole(true);
+    setRoleError(null);
+    try {
+      await authService.completeRegistration();
+      const user = authService.getCurrentUser();
+      if (user) await performRoleCheck(user);
+      else navigate('/login');
+    } catch (err: any) {
+      setRoleError(err.message || 'Failed to finalize your account profile.');
+      setIsCheckingRole(false);
+    }
+  };
+
+  if (isCheckingRole) {
+    return (
+      <div className="min-h-screen bg-[#0A0D0C] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-10 h-10 border-2 border-[#32D6B0] border-t-transparent rounded-full animate-spin mb-4" />
+        <h3 className="text-base font-bold text-[#F5F7F6]">Resolving Account Role...</h3>
+        <p className="text-xs text-[#A3ADA7] mt-1">Checking authoritative table (public.learnai_users)</p>
+      </div>
+    );
+  }
+
+  if (roleError) {
+    const isMissingProfile = roleError.toLowerCase().includes('profile was not found');
+    return (
+      <div className="min-h-screen bg-[#0A0D0C] flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full bg-[#151A18] border border-[#FF7272]/50 p-6 rounded-2xl shadow-2xl space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-[#1B211E] border border-[#FF7272]/30 text-[#FF7272] flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-[#F5F7F6]">Account Verification Notice</h3>
+            <p className="text-xs text-[#FF7272] mt-2 leading-relaxed font-medium">{roleError}</p>
+          </div>
+          <div className="flex flex-col gap-3 pt-2">
+            {isMissingProfile ? (
+              <button
+                type="button"
+                onClick={handleCompleteRegistration}
+                className="w-full py-2.5 px-4 bg-[#32D6B0] hover:bg-[#78D98A] text-[#0A0D0C] text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-lg"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Complete Registration</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  const u = authService.getCurrentUser();
+                  if (u) performRoleCheck(u);
+                  else navigate('/login');
+                }}
+                className="w-full py-2.5 px-4 bg-[#32D6B0] hover:bg-[#78D98A] text-[#0A0D0C] text-xs font-bold rounded-xl cursor-pointer transition-colors"
+              >
+                Retry Verification
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={async () => {
+                await authService.logout();
+                navigate('/login');
+              }}
+              className="w-full py-2.5 px-4 bg-[#1B211E] hover:bg-[#29312C] text-[#F5F7F6] text-xs font-semibold rounded-xl border border-[#29312C] cursor-pointer transition-colors"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentUser) return null;
 
@@ -401,85 +538,64 @@ Please evaluate with: Communication Score (out of 100), Technical Score (out of 
               {dashboardData && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                   {/* 1. Overall learning progress */}
-                  <KpiCard
-                    title="Learning Progress"
-                    value={`${dashboardData.kpis.overallProgress}%`}
-                    delta={{ value: '+8%', isPositive: true, label: 'this week' }}
-                    subtitle="Course completion rate"
-                    icon={TrendingUp}
-                    accentColor="teal"
-                  />
+                  {/* 1. Overall learning progress */}
+                  <div className="bg-gradient-to-br from-[#101412] to-[#1B211E] p-4 rounded-2xl border border-[#29312C]/60 shadow-lg">
+                    <div className="flex items-center gap-2 mb-2 text-[#A3ADA7]">
+                        <TrendingUp className="w-4 h-4 text-[#32D6B0]" />
+                        <span className="text-xs font-semibold">Learning Progress</span>
+                    </div>
+                    <div className="text-2xl font-bold text-[#F5F7F6]">{dashboardData.kpis.overallProgress}%</div>
+                  </div>
 
                   {/* 2. Courses enrolled */}
-                  <KpiCard
-                    title="Courses Enrolled"
-                    value={dashboardData.kpis.coursesEnrolled}
-                    unit="Tracks"
-                    subtitle="Active curriculum"
-                    icon={BookOpen}
-                    accentColor="lime"
-                  />
+                  {/* 2. Courses enrolled */}
+                  <div className="bg-gradient-to-br from-[#101412] to-[#1B211E] p-4 rounded-2xl border border-[#29312C]/60 shadow-lg">
+                    <div className="flex items-center gap-2 mb-2 text-[#A3ADA7]">
+                        <BookOpen className="w-4 h-4 text-[#B4E85A]" />
+                        <span className="text-xs font-semibold">Courses Enrolled</span>
+                    </div>
+                    <div className="text-2xl font-bold text-[#F5F7F6]">{dashboardData.kpis.coursesEnrolled}</div>
+                  </div>
 
                   {/* 3. Average assessment score */}
-                  <KpiCard
-                    title="Avg Assessment"
-                    value={`${dashboardData.kpis.avgAssessmentScore}%`}
-                    delta={{ value: '+4 pts', isPositive: true }}
-                    subtitle="Target: >= 75%"
-                    icon={Award}
-                    accentColor="yellow"
-                  />
+                  {/* 3. Average assessment score */}
+                  <div className="bg-gradient-to-br from-[#101412] to-[#1B211E] p-4 rounded-2xl border border-[#29312C]/60 shadow-lg">
+                    <div className="flex items-center gap-2 mb-2 text-[#A3ADA7]">
+                        <Award className="w-4 h-4 text-[#F2D64B]" />
+                        <span className="text-xs font-semibold">Avg Assessment</span>
+                    </div>
+                    <div className="text-2xl font-bold text-[#F5F7F6]">{dashboardData.kpis.avgAssessmentScore}%</div>
+                  </div>
 
                   {/* 4. Readiness score */}
-                  <KpiCard
-                    title="Readiness Score"
-                    value={`${dashboardData.kpis.readinessScore}`}
-                    unit="/ 100"
-                    delta={{
-                      value: `${dashboardData.kpis.readinessScore >= dashboardData.kpis.jobReadyTarget ? '✓' : ''} ${
-                        dashboardData.kpis.readinessScore - dashboardData.kpis.jobReadyTarget
-                      } pts`,
-                      isPositive: dashboardData.kpis.readinessScore >= dashboardData.kpis.jobReadyTarget,
-                      label: 'vs target',
-                    }}
-                    subtitle="Job-ready benchmark"
-                    icon={Target}
-                    accentColor="teal"
-                  />
+                  {/* 4. Readiness score */}
+                  <div className="bg-gradient-to-br from-[#101412] to-[#1B211E] p-4 rounded-2xl border border-[#29312C]/60 shadow-lg">
+                    <div className="flex items-center gap-2 mb-2 text-[#A3ADA7]">
+                        <Target className="w-4 h-4 text-[#32D6B0]" />
+                        <span className="text-xs font-semibold">Readiness Score</span>
+                    </div>
+                    <div className="text-2xl font-bold text-[#F5F7F6]">{dashboardData.kpis.readinessScore}</div>
+                  </div>
 
                   {/* 5. Completed assignments */}
-                  <KpiCard
-                    title="Assignments Done"
-                    value={`${dashboardData.kpis.completedAssignments}`}
-                    unit={`/ ${dashboardData.kpis.totalAssignments}`}
-                    delta={{
-                      value: `${Math.max(0, dashboardData.kpis.totalAssignments - dashboardData.kpis.completedAssignments)} Remaining`,
-                      isPositive: dashboardData.kpis.completedAssignments >= dashboardData.kpis.totalAssignments,
-                      label: 'tasks',
-                    }}
-                    subtitle={`${dashboardData.kpis.completedAssignments} verified submitted`}
-                    icon={CheckCircle2}
-                    accentColor="lime"
-                  />
+                  {/* 5. Completed assignments */}
+                  <div className="bg-gradient-to-br from-[#101412] to-[#1B211E] p-4 rounded-2xl border border-[#29312C]/60 shadow-lg">
+                    <div className="flex items-center gap-2 mb-2 text-[#A3ADA7]">
+                        <CheckCircle2 className="w-4 h-4 text-[#B4E85A]" />
+                        <span className="text-xs font-semibold">Assignments Done</span>
+                    </div>
+                    <div className="text-2xl font-bold text-[#F5F7F6]">{dashboardData.kpis.completedAssignments}</div>
+                  </div>
 
                   {/* 6. Current learning streak */}
-                  <KpiCard
-                    title="Learning Streak"
-                    value={`${dashboardData.kpis.streakDays}`}
-                    unit="Days"
-                    delta={{
-                      value: dashboardData.kpis.streakDays > 0 ? `${dashboardData.kpis.streakDays}d Streak` : 'Inactive',
-                      isPositive: dashboardData.kpis.streakDays > 0,
-                      label: 'commitment',
-                    }}
-                    subtitle={
-                      dashboardData.kpis.streakDays > 0
-                        ? `${dashboardData.kpis.streakDays} consecutive active days`
-                        : 'Complete a lesson to start a streak'
-                    }
-                    icon={Flame}
-                    accentColor="yellow"
-                  />
+                  {/* 6. Current learning streak */}
+                  <div className="bg-gradient-to-br from-[#101412] to-[#1B211E] p-4 rounded-2xl border border-[#29312C]/60 shadow-lg">
+                    <div className="flex items-center gap-2 mb-2 text-[#A3ADA7]">
+                        <Flame className="w-4 h-4 text-[#F2D64B]" />
+                        <span className="text-xs font-semibold">Learning Streak</span>
+                    </div>
+                    <div className="text-2xl font-bold text-[#F5F7F6]">{dashboardData.kpis.streakDays}d</div>
+                  </div>
                 </div>
               )}
 
@@ -2279,7 +2395,7 @@ Please evaluate with: Communication Score (out of 100), Technical Score (out of 
                     {currentUser.name
                       ? currentUser.name
                           .split(' ')
-                          .map((n) => n[0])
+                          .map((n: string) => n[0])
                           .join('')
                           .slice(0, 2)
                           .toUpperCase()

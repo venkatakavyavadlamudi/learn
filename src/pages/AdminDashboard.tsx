@@ -48,6 +48,7 @@ import {
   Loader2,
   AlertCircle,
   Filter,
+  Sparkles,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -61,6 +62,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
   // Active tab state matching the Sidebar navigation
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const isSuperAdmin = false; // Super Admin role has been removed per requirements
 
   // Data states
   const [users, setUsers] = useState<any[]>([]);
@@ -181,13 +183,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
   if (!currentUser) return null;
 
   const roleStr = String(currentUser.role || '').toLowerCase();
-  const isSuperAdmin =
-    roleStr === 'super_admin' || roleStr === 'super admin' || roleStr.includes('super');
   const isInstitutionAdmin =
     roleStr === 'institution_admin' || roleStr === 'institution admin' || roleStr === 'admin';
 
   // Strict role check: students, mentors, trainers blocked
-  if (!isSuperAdmin && !isInstitutionAdmin) {
+  if (!isInstitutionAdmin) {
     const redirectPath = authService.getRoleDashboardPath(currentUser.role);
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4 bg-[#0A0D0C]">
@@ -211,13 +211,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
   }
 
   // Scoped dataset for Institution Admin (isolated by Organization_ID)
-  const scopedUsers = isSuperAdmin
-    ? users
-    : users.filter(
-        (u) =>
-          u.organizationId === currentUser.Organization_ID ||
-          u.Organization_ID === currentUser.Organization_ID
-      );
+  const scopedUsers = users.filter(
+    (u) =>
+      u.organizationId === currentUser.Organization_ID ||
+      u.Organization_ID === currentUser.Organization_ID
+  );
 
   // Counts
   const totalStudents = scopedUsers.filter((u) => u.role === 'student').length;
@@ -285,9 +283,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
   const handleSaveRoleChange = async () => {
     if (!editingUser || !roleChangeConfirmed || isSavingRoleChange) return;
 
-    // Security check: Admin cannot promote to Admin or Super Admin
-    if (!isSuperAdmin && (targetNewRole === 'admin' || targetNewRole === 'super_admin')) {
-      showToast('Institution Admins cannot promote users to Admin or Super Admin.', 'error');
+    // Security check: Admin cannot promote users to Admin
+    if (targetNewRole === 'admin' || targetNewRole === 'institution_admin') {
+      showToast('Institution Admins cannot promote users to Admin.', 'error');
       return;
     }
 
@@ -378,12 +376,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'super_admin':
-        return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#151A18] text-[#32D6B0] border border-[#29312C]">
-            Super Admin
-          </span>
-        );
       case 'admin':
       case 'institution_admin':
         return (
@@ -447,38 +439,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
       {/* Main Content */}
       <main className="flex-1 min-w-0 p-6 sm:p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto space-y-8">
-          {/* Welcome Message for Super Admin */}
-          {isSuperAdmin && (
-            <div className="bg-[#1B211E] border border-[#29312C] rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs">
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#32D6B0] text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#1E40AF]">
-                    Welcome, Super Admin!
-                  </h2>
-                  <p className="text-xs text-[#3B82F6]">
-                    Your account has been created with full platform administrator governance privileges.
-                  </p>
-                </div>
-              </div>
-              <span className="hidden sm:inline-flex px-3 py-1 bg-[#151A18] border border-[#29312C] text-[#32D6B0] text-xs font-semibold rounded-lg shadow-2xs">
-                Role: Super Admin
-              </span>
-            </div>
-          )}
+
 
           {/* Header Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#1B211E] text-[#32D6B0] border border-[#29312C]">
-                  {isSuperAdmin ? 'Platform-Wide Governance' : `Organization: ${currentUser.organizationName || 'Assigned College'}`}
+              {`Organization: ${currentUser.organizationName || 'Assigned College'}`}
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#F5F7F6] tracking-tight mt-1">
-                {isSuperAdmin ? 'Super Admin Dashboard' : 'Institution Admin Dashboard'}
+                {'Institution Admin Dashboard'}
               </h1>
               <p className="text-xs sm:text-sm text-[#A3ADA7] mt-0.5">
                 {isSuperAdmin
@@ -487,25 +459,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
               </p>
             </div>
 
-            {/* Super Admin Action Buttons */}
-            {isSuperAdmin && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsCreateAdminOpen(true)}
-                  className="px-3.5 py-2 bg-[#32D6B0] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-lg shadow-subtle transition-colors flex items-center gap-1.5"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Create Institution Admin</span>
-                </button>
-                <button
-                  onClick={() => setIsCreateOrgOpen(true)}
-                  className="px-3.5 py-2 bg-[#151A18] hover:bg-[#0A0D0C] text-[#32D6B0] border border-[#29312C] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Organization</span>
-                </button>
-              </div>
-            )}
+
           </div>
 
           {/* ========================================================= */}
@@ -513,62 +467,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
           {/* ========================================================= */}
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
+
+
               {/* ========================================================= */}
               {/* 7 KPI CARDS PER SPECIFICATION                             */}
               {/* ========================================================= */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-3.5">
                 <KpiCard
                   title="Enrolled Students"
-                  value={adminAnalytics?.kpis.totalStudents || totalStudents || 142}
+                  value={adminAnalytics ? adminAnalytics.kpis.totalStudents : 0}
                   subtitle="Active cohort"
                   icon={Users}
-                  accent="teal"
-                  trend={{ value: 12, isPositive: true, label: 'new enrolls' }}
-                />
-                <KpiCard
-                  title="Total Mentors"
-                  value={adminAnalytics?.kpis.totalMentors || totalMentors || 14}
-                  subtitle="1-on-1 advisors"
-                  icon={Award}
                   accent="teal"
                 />
                 <KpiCard
                   title="Total Trainers"
-                  value={adminAnalytics?.kpis.totalTrainers || totalTrainers || 8}
-                  subtitle="Curriculum faculty"
+                  value={adminAnalytics ? adminAnalytics.kpis.totalTrainers : 0}
+                  subtitle={`Assigned: ${adminAnalytics ? adminAnalytics.kpis.studentsAssignedToTrainers : 0}`}
                   icon={GraduationCap}
                   accent="teal"
                 />
                 <KpiCard
+                  title="Total Mentors"
+                  value={adminAnalytics ? adminAnalytics.kpis.totalMentors : 0}
+                  subtitle={`Assigned: ${adminAnalytics ? adminAnalytics.kpis.studentsAssignedToMentors : 0}`}
+                  icon={Award}
+                  accent="teal"
+                />
+                <KpiCard
+                  title="Total Admins"
+                  value={adminAnalytics?.kpis.totalAdmins ?? 1}
+                  subtitle="System governance"
+                  icon={ShieldAlert}
+                  accent="lime"
+                />
+                <KpiCard
                   title="Active Courses"
-                  value={adminAnalytics?.kpis.activeCourses || 6}
+                  value={adminAnalytics ? adminAnalytics.kpis.activeCourses : 0}
                   subtitle="Accredited paths"
                   icon={BookOpen}
                   accent="lime"
                 />
                 <KpiCard
-                  title="Avg Progress"
-                  value={`${adminAnalytics?.kpis.avgStudentProgress || 58}%`}
-                  subtitle="Institution avg"
-                  icon={TrendingUp}
-                  accent="lime"
-                  trend={{ value: 4, isPositive: true, label: 'this week' }}
-                />
-                <KpiCard
                   title="Students at Risk"
-                  value={adminAnalytics?.kpis.studentsAtRisk || 16}
+                  value={adminAnalytics ? adminAnalytics.kpis.studentsAtRisk : 0}
                   subtitle="Readiness < 60%"
                   icon={AlertTriangle}
                   accent="red"
-                  trend={{ value: 3, isPositive: false, label: 'attention flags' }}
                 />
                 <KpiCard
                   title="Readiness Score"
-                  value={`${adminAnalytics?.kpis.overallReadiness || 68}%`}
+                  value={adminAnalytics ? `${adminAnalytics.kpis.overallReadiness}%` : '0%'}
                   subtitle="Target: 75%"
                   icon={Target}
                   accent="yellow"
-                  trend={{ value: 2, isPositive: true, label: 'vs benchmark' }}
                 />
               </div>
 
@@ -579,8 +531,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
                 {/* 1. Students by Course */}
                 <StudentsByCourseChart
                   data={adminAnalytics?.studentsByCourse || []}
-                  title="Students by Course & Cohort Capacity"
-                  subtitle="Real-time enrollment distribution across institution curricula"
+                  title="Students by Course & Enrollment Counts"
+                  subtitle="Real-time student distribution across active institution curricula"
                 />
 
                 {/* 2. Readiness Mix by Course */}
@@ -601,7 +553,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
                 <CourseCompletionFunnel
                   data={adminAnalytics?.courseCompletionFunnel || []}
                   title="Course Completion Funnel"
-                  subtitle="Pipeline tracking from enrollment through midpoint to final certification"
+                  subtitle="Pipeline tracking from enrollment through midpoint to final completion"
                 />
 
                 {/* 5. Assessment Performance across Courses */}
@@ -615,7 +567,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
                 <SkillsComparisonChart
                   skills={(adminAnalytics?.commonSkillGaps || []).map((sg) => ({
                     name: sg.skill,
-                    current: 80 - sg.avgDeficit,
+                    current: Math.max(0, 80 - sg.avgDeficit),
                     target: 80,
                     gap: -sg.avgDeficit,
                     category: `${sg.affectedStudents} students affected`,
@@ -644,7 +596,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
                     </div>
                   </div>
                   <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-[#0A0D0C] text-[#FF7272] border border-[#FF7272]/30">
-                    2 Action Items
+                    {adminAnalytics && adminAnalytics.kpis.studentsAtRisk > 0 ? 'Action Required' : 'All Cohorts Healthy'}
                   </span>
                 </div>
 
@@ -652,18 +604,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
                   <div className="p-4 rounded-xl bg-[#0A0D0C] border border-[#FF7272]/30 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-[#FF7272] flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5" /> High Deficit in System Design
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        {adminAnalytics?.commonSkillGaps[0]
+                          ? `Skill Gap Deficit: ${adminAnalytics.commonSkillGaps[0].skill}`
+                          : 'Curriculum Competency Alert'}
                       </span>
-                      <span className="text-[11px] font-mono text-[#A3ADA7]">Affects 68 Students</span>
+                      <span className="text-[11px] font-mono text-[#A3ADA7]">
+                        {adminAnalytics?.commonSkillGaps[0]
+                          ? `Affects ${adminAnalytics.commonSkillGaps[0].affectedStudents} Students`
+                          : '0 Affected'}
+                      </span>
                     </div>
                     <p className="text-xs text-[#A3ADA7] leading-relaxed">
-                      Average student mastery in System Design Architecture is 24% below the 80% benchmark.
-                      Recommend assigning faculty to conduct a weekend review workshop.
+                      {adminAnalytics?.commonSkillGaps[0]
+                        ? `Average student mastery in ${adminAnalytics.commonSkillGaps[0].skill} has a ${adminAnalytics.commonSkillGaps[0].avgDeficit}% deficit below target benchmark. Review faculty workshops.`
+                        : 'No critical skill deficits detected across current skill assessments.'}
                     </p>
                     <div className="pt-2 flex justify-end">
                       <button
-                        onClick={() => setActiveTab('trainers')}
-                        className="text-xs font-semibold text-[#32D6B0] hover:underline"
+                        onClick={() => {
+                            // Placeholder for actual notification logic
+                            if (adminAnalytics?.commonSkillGaps[0]) {
+                                showToast(`Notifying relevant trainers about ${adminAnalytics.commonSkillGaps[0].skill} gap...`);
+                            } else {
+                                showToast('No trainers to notify.', 'error');
+                            }
+                        }}
+                        className="text-xs font-semibold text-[#32D6B0] hover:underline cursor-pointer"
                       >
                         Notify Relevant Trainers →
                       </button>
@@ -673,18 +640,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'da
                   <div className="p-4 rounded-xl bg-[#0A0D0C] border border-[#F2D64B]/30 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-[#F2D64B] flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" /> Low-Activity Alert: Enterprise SQL
+                        <Clock className="w-3.5 h-3.5" /> At-Risk Cohort Monitoring
                       </span>
-                      <span className="text-[11px] font-mono text-[#A3ADA7]">8 Inactive &gt;4 Days</span>
+                      <span className="text-[11px] font-mono text-[#A3ADA7]">
+                        {adminAnalytics ? `${adminAnalytics.kpis.studentsAtRisk} Students At Risk` : '0 At Risk'}
+                      </span>
                     </div>
                     <p className="text-xs text-[#A3ADA7] leading-relaxed">
-                      8 students in the Enterprise SQL cohort have not submitted lab assignments in the past 4 days.
-                      Mentors have been queued for automated follow-up check-ins.
+                      {adminAnalytics && adminAnalytics.kpis.studentsAtRisk > 0
+                        ? `${adminAnalytics.kpis.studentsAtRisk} students currently have readiness scores below 60% or low course activity. Review mentor allocations.`
+                        : 'All enrolled students currently meet baseline readiness thresholds.'}
                     </p>
                     <div className="pt-2 flex justify-end">
                       <button
                         onClick={() => setActiveTab('mentors')}
-                        className="text-xs font-semibold text-[#32D6B0] hover:underline"
+                        className="text-xs font-semibold text-[#32D6B0] hover:underline cursor-pointer"
                       >
                         Review Mentor Allocations →
                       </button>

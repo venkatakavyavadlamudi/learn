@@ -32,6 +32,7 @@ import {
   HelpCircle,
   Award,
   Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 
 export const MentorDashboard: React.FC = () => {
@@ -39,6 +40,7 @@ export const MentorDashboard: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(authService.getCurrentUser());
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isDevPreview, setIsDevPreview] = useState(false);
 
   // Analytical data state
   const [dashboardData, setDashboardData] = useState<MentorDashboardData | null>(null);
@@ -70,6 +72,26 @@ export const MentorDashboard: React.FC = () => {
       navigate('/login');
       return;
     }
+
+    const roleNormalized = String(user.role || '').toLowerCase().trim();
+    if (roleNormalized === 'student') {
+      navigate('/dashboard');
+      return;
+    }
+    if (roleNormalized === 'trainer') {
+      navigate('/trainer');
+      return;
+    }
+
+    const isAdminUser =
+      roleNormalized === 'admin' ||
+      roleNormalized === 'institution_admin' ||
+      roleNormalized.includes('admin');
+
+    if (isAdminUser) {
+      setIsDevPreview(true);
+    }
+
     setCurrentUser(user);
 
     const loadData = async () => {
@@ -222,6 +244,32 @@ export const MentorDashboard: React.FC = () => {
           onMenuClick={() => setMobileSidebarOpen(true)}
           notificationsCount={dashboardData?.pendingDoubts.filter((d) => !resolvedDoubts.includes(d.id)).length || 0}
         />
+
+        {/* Dev Preview Banner for Admins */}
+        {isDevPreview && (
+          <div className="bg-[#151A18] border-b border-[#32D6B0]/40 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2.5 py-1 rounded font-mono font-bold bg-[#32D6B0]/15 text-[#32D6B0] border border-[#32D6B0]/30 uppercase text-[10px] tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Dev Preview Mode
+              </span>
+              <span className="text-[#F5F7F6] font-medium">
+                Viewing Mentor Dashboard as <strong className="text-[#32D6B0]">{currentUser.name}</strong> ({currentUser.email})
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[#A3ADA7] text-[11px] hidden md:inline">
+                Your role ({currentUser.role}) is unchanged in database
+              </span>
+              <button
+                onClick={() => navigate('/admin')}
+                className="px-3.5 py-1.5 bg-[#101412] hover:bg-[#1B211E] text-[#32D6B0] font-semibold rounded-lg border border-[#32D6B0]/30 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Return to Admin Console</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {/* Toast Notification */}

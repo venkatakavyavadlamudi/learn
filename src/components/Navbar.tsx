@@ -129,12 +129,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
       };
     }
     switch (currentUser.role) {
-      case 'super_admin':
-        return {
-          label: 'Super Admin',
-          icon: ShieldCheck,
-          badgeClass: 'bg-[#151A18] text-[#F2D64B] border-[#29312C]',
-        };
       case 'institution_admin':
       case 'admin':
         return {
@@ -312,6 +306,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                         <UserIcon className="w-3.5 h-3.5 mr-2.5 text-[#A3ADA7]" />
                         <span>My Profile</span>
                       </Link>
+
+                      {/* Dev Preview Links for Admins */}
+                      {(currentUser.role === 'admin' || currentUser.role === 'institution_admin') && (
+                        <>
+                          <div className="border-t border-[#29312C] my-1"></div>
+                          <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#32D6B0]">
+                            Dev Preview Portals
+                          </div>
+                          <Link
+                            href="/trainer"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center px-4 py-2 text-xs font-medium text-[#A3ADA7] hover:bg-[#1B211E] hover:text-[#32D6B0]"
+                          >
+                            <Users className="w-3.5 h-3.5 mr-2.5 text-[#32D6B0]" />
+                            <span>Preview Trainer Portal</span>
+                          </Link>
+                          <Link
+                            href="/mentor"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center px-4 py-2 text-xs font-medium text-[#A3ADA7] hover:bg-[#1B211E] hover:text-[#B4E85A]"
+                          >
+                            <Compass className="w-3.5 h-3.5 mr-2.5 text-[#B4E85A]" />
+                            <span>Preview Mentor Portal</span>
+                          </Link>
+                        </>
+                      )}
 
                       <div className="border-t border-[#29312C] my-1"></div>
 

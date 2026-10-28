@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, Link } from '../context/RouterContext';
-import { authService } from '../services/authService';
+import { authService, DEMO_CONFIG } from '../services/authService';
 import {
   Eye,
   EyeOff,
@@ -8,6 +8,10 @@ import {
   Mail,
   AlertCircle,
   Loader2,
+  GraduationCap,
+  Users,
+  Compass,
+  Sparkles,
 } from 'lucide-react';
 
 export const Login: React.FC = () => {
@@ -35,6 +39,66 @@ export const Login: React.FC = () => {
   const [resendNotice, setResendNotice] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<'student' | 'trainer' | 'mentor' | null>(null);
+  const [view, setView] = useState<'login' | 'forgot-password'>('login');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setServerError(null);
+    setResendNotice(null);
+
+    if (!resetEmail.trim()) {
+      setErrors({ resetEmail: 'Email is required' });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail.trim())) {
+      setErrors({ resetEmail: 'Enter a valid email address' });
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const res = await authService.resetPasswordForEmail(resetEmail.trim());
+      if (res.success) {
+        setResendNotice('If an account exists for this email, you will receive a password reset link. Please check your inbox and spam folder.');
+        setResetEmail('');
+      } else {
+        setServerError(res.error || 'Failed to send reset link.');
+      }
+    } catch (err: any) {
+      setServerError(err.message || 'An error occurred. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async (role: 'student' | 'trainer' | 'mentor') => {
+    setServerError(null);
+    setDemoLoading(role);
+
+    try {
+      const res = await authService.loginDemoAccount(role);
+
+      if (!res.success || !res.user) {
+        setServerError(
+          res.error || `Failed to authenticate demo account for ${role}. Please check Supabase configuration.`
+        );
+        setDemoLoading(null);
+        return;
+      }
+
+      const route = authService.getRoleDashboardPath(res.user.role);
+      navigate(route);
+    } catch (err: any) {
+      setServerError(
+        err?.message || `An error occurred while signing in as ${role}.`
+      );
+      setDemoLoading(null);
+    }
+  };
 
   const handleResendConfirmation = async () => {
     if (!email.trim()) return;
@@ -161,95 +225,154 @@ export const Login: React.FC = () => {
             </div>
           )}
 
-          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-xs font-semibold text-[#F5F7F6] mb-1.5">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#A3ADA7]">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className={`block w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-[#101412] border rounded-lg text-[#F5F7F6] placeholder:text-[#A3ADA7]/50 focus:outline-none focus:ring-1 focus:ring-[#32D6B0] ${
-                    errors.email ? 'border-[#FF7272]' : 'border-[#29312C]'
-                  }`}
-                />
+          {view === 'forgot-password' ? (
+            <form className="space-y-4" onSubmit={handleForgotPassword} noValidate>
+              <div className="space-y-1">
+                <h2 className="text-sm font-bold text-[#F5F7F6]">Reset Password</h2>
+                <p className="text-[11px] text-[#A3ADA7]">Enter your email address and we'll send you a link to reset your password.</p>
               </div>
-              {errors.email && <p className="mt-1 text-xs text-[#FF7272]">{errors.email}</p>}
-            </div>
 
-            {/* Password Field */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-xs font-semibold text-[#F5F7F6]">
-                  Password
+              <div>
+                <label htmlFor="resetEmail" className="block text-xs font-semibold text-[#F5F7F6] mb-1.5">
+                  Email address
                 </label>
-                <a
-                  href="#forgot"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // Non-blocking simulated response
-                  }}
-                  className="text-xs font-medium text-[#32D6B0] hover:underline"
-                >
-                  Forgot password?
-                </a>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#A3ADA7]">
-                  <Lock className="h-4 w-4" />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#A3ADA7]">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <input
+                    id="resetEmail"
+                    name="resetEmail"
+                    type="email"
+                    autoComplete="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className={`block w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-[#101412] border rounded-lg text-[#F5F7F6] placeholder:text-[#A3ADA7]/50 focus:outline-none focus:ring-1 focus:ring-[#32D6B0] ${
+                      errors.resetEmail ? 'border-[#FF7272]' : 'border-[#29312C]'
+                    }`}
+                  />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className={`block w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm bg-[#101412] border rounded-lg text-[#F5F7F6] placeholder:text-[#A3ADA7]/50 focus:outline-none focus:ring-1 focus:ring-[#32D6B0] ${
-                    errors.password ? 'border-[#FF7272]' : 'border-[#29312C]'
-                  }`}
-                />
+                {errors.resetEmail && <p className="mt-1 text-xs text-[#FF7272]">{errors.resetEmail}</p>}
+              </div>
+
+              <div className="pt-2">
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#A3ADA7] hover:text-[#F5F7F6]"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full flex justify-center items-center py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold text-[#0A0D0C] gradient-uniconnect hover:opacity-95 focus:outline-none disabled:opacity-50 transition-opacity shadow-md glow-teal-sm cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-[#A3ADA7]" />}
+                  {resetLoading ? (
+                    <>
+                      <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#0A0D0C]" />
+                      <span>Sending link...</span>
+                    </>
+                  ) : (
+                    <span>Send Reset Link</span>
+                  )}
                 </button>
               </div>
-              {errors.password && <p className="mt-1 text-xs text-[#FF7272]">{errors.password}</p>}
-            </div>
 
-            {/* Submit Button */}
-            <div className="pt-2">
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center items-center py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold text-[#0A0D0C] gradient-uniconnect hover:opacity-95 focus:outline-none disabled:opacity-50 transition-opacity shadow-md glow-teal-sm cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setView('login');
+                  setServerError(null);
+                  setResendNotice(null);
+                }}
+                className="w-full text-center text-xs text-[#A3ADA7] hover:text-[#F5F7F6] pt-2"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#0A0D0C]" />
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <span>Login</span>
-                )}
+                Back to Login
               </button>
-            </div>
-          </form>
+            </form>
+          ) : (
+            <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+              {/* Email Field */}
+              <div>
+                <label htmlFor="email" className="block text-xs font-semibold text-[#F5F7F6] mb-1.5">
+                  Email address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#A3ADA7]">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className={`block w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-[#101412] border rounded-lg text-[#F5F7F6] placeholder:text-[#A3ADA7]/50 focus:outline-none focus:ring-1 focus:ring-[#32D6B0] ${
+                      errors.email ? 'border-[#FF7272]' : 'border-[#29312C]'
+                    }`}
+                  />
+                </div>
+                {errors.email && <p className="mt-1 text-xs text-[#FF7272]">{errors.email}</p>}
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="password" className="block text-xs font-semibold text-[#F5F7F6]">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setView('forgot-password')}
+                    className="text-xs font-medium text-[#32D6B0] hover:underline cursor-pointer bg-transparent border-none p-0"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#A3ADA7]">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className={`block w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm bg-[#101412] border rounded-lg text-[#F5F7F6] placeholder:text-[#A3ADA7]/50 focus:outline-none focus:ring-1 focus:ring-[#32D6B0] ${
+                      errors.password ? 'border-[#FF7272]' : 'border-[#29312C]'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#A3ADA7] hover:text-[#F5F7F6]"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-[#A3ADA7]" />}
+                  </button>
+                </div>
+                {errors.password && <p className="mt-1 text-xs text-[#FF7272]">{errors.password}</p>}
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full flex justify-center items-center py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold text-[#0A0D0C] gradient-uniconnect hover:opacity-95 focus:outline-none disabled:opacity-50 transition-opacity shadow-md glow-teal-sm cursor-pointer"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#0A0D0C]" />
+                      <span>Signing in...</span>
+                    </>
+                  ) : (
+                    <span>Login</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
 
           <div className="mt-6 pt-5 border-t border-[#29312C] text-center">
             <p className="text-xs text-[#A3ADA7]">
@@ -264,6 +387,124 @@ export const Login: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modern Quick Demo Accounts Section */}
+      {DEMO_CONFIG.enabled && (
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl px-4 sm:px-0">
+          <div className="bg-[#151A18] p-6 sm:p-8 rounded-2xl border border-[#29312C] shadow-2xl space-y-6">
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#101412] border border-[#29312C] text-xs font-semibold text-[#32D6B0]">
+                <Sparkles className="w-3.5 h-3.5 text-[#32D6B0]" />
+                <span>Quick Evaluation &amp; Testing</span>
+              </div>
+              <h2 className="text-lg font-bold text-[#F5F7F6] font-['Outfit'] mt-2">
+                Quick Demo Accounts
+              </h2>
+              <p className="text-xs text-[#A3ADA7]">
+                Authenticate with pre-configured test roles to explore student, trainer &amp; mentor telemetry
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 🎓 Student Demo Card */}
+              <div className="p-4 rounded-xl bg-[#101412] border border-[#29312C] flex flex-col justify-between space-y-4 hover:border-[#32D6B0]/40 transition-colors">
+                <div className="space-y-2">
+                  <div className="w-9 h-9 rounded-lg bg-[#32D6B0]/10 border border-[#32D6B0]/30 text-[#32D6B0] flex items-center justify-center font-bold">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#F5F7F6] flex items-center gap-1.5">
+                      <span>🎓 Student Demo</span>
+                    </h3>
+                    <p className="text-[11px] text-[#A3ADA7] leading-relaxed mt-1">
+                      Explore course modules, practice lab quizzes, assignment submissions, and AI learning roadmap.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('student')}
+                  disabled={demoLoading !== null}
+                  className="w-full py-2 px-3 bg-[#151A18] hover:bg-[#1B211E] text-[#32D6B0] border border-[#32D6B0]/40 hover:border-[#32D6B0] text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {demoLoading === 'student' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#32D6B0]" />
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <span>Login as Student</span>
+                  )}
+                </button>
+              </div>
+
+              {/* 👨‍🏫 Trainer Demo Card */}
+              <div className="p-4 rounded-xl bg-[#101412] border border-[#29312C] flex flex-col justify-between space-y-4 hover:border-[#78D98A]/40 transition-colors">
+                <div className="space-y-2">
+                  <div className="w-9 h-9 rounded-lg bg-[#78D98A]/10 border border-[#78D98A]/30 text-[#78D98A] flex items-center justify-center font-bold">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#F5F7F6] flex items-center gap-1.5">
+                      <span>👨‍🏫 Trainer Demo</span>
+                    </h3>
+                    <p className="text-[11px] text-[#A3ADA7] leading-relaxed mt-1">
+                      Batch curriculum delivery, submission evaluations, rubric code grading, and skill deficits.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('trainer')}
+                  disabled={demoLoading !== null}
+                  className="w-full py-2 px-3 bg-[#151A18] hover:bg-[#1B211E] text-[#78D98A] border border-[#78D98A]/40 hover:border-[#78D98A] text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {demoLoading === 'trainer' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#78D98A]" />
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <span>Login as Trainer</span>
+                  )}
+                </button>
+              </div>
+
+              {/* 🤝 Mentor Demo Card */}
+              <div className="p-4 rounded-xl bg-[#101412] border border-[#29312C] flex flex-col justify-between space-y-4 hover:border-[#B4E85A]/40 transition-colors">
+                <div className="space-y-2">
+                  <div className="w-9 h-9 rounded-lg bg-[#B4E85A]/10 border border-[#B4E85A]/30 text-[#B4E85A] flex items-center justify-center font-bold">
+                    <Compass className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#F5F7F6] flex items-center gap-1.5">
+                      <span>🤝 Mentor Demo</span>
+                    </h3>
+                    <p className="text-[11px] text-[#A3ADA7] leading-relaxed mt-1">
+                      Assigned mentees, 1-on-1 mentoring sessions, mock interview scoring, and risk telemetry.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('mentor')}
+                  disabled={demoLoading !== null}
+                  className="w-full py-2 px-3 bg-[#151A18] hover:bg-[#1B211E] text-[#B4E85A] border border-[#B4E85A]/40 hover:border-[#B4E85A] text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {demoLoading === 'mentor' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#B4E85A]" />
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <span>Login as Mentor</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

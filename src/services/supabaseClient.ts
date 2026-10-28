@@ -42,6 +42,8 @@ let clientInstance: SupabaseClient | null = null;
 
 if (isSupabaseConfigured()) {
   try {
+    const url = new URL(envUrl);
+    console.log(`[LearnAI Supabase] Initializing client for project: ${url.hostname}`);
     clientInstance = createClient(envUrl.trim(), envAnonKey.trim(), {
       auth: {
         persistSession: true,
@@ -82,8 +84,8 @@ export async function testSupabaseConnection(): Promise<SupabaseConnectionStatus
   }
 
   try {
-    // Attempt a light ping by querying profiles or checking auth health
-    const { error } = await supabase.from('profiles').select('id', { head: true, count: 'exact' });
+    // Attempt a light ping by querying learnai_users
+    const { error } = await supabase.from('learnai_users').select('user_id', { head: true, count: 'exact' });
     if (error && error.code !== 'PGRST116') {
       // If table doesn't exist yet, it's connected to Supabase but needs schema migration
       if (error.code === '42P01') {
@@ -91,7 +93,7 @@ export async function testSupabaseConnection(): Promise<SupabaseConnectionStatus
           isConfigured: true,
           connected: true,
           url: envUrl,
-          error: 'Connected to Supabase! The "profiles" table was not found yet. Please run the provided SQL setup script in Supabase SQL Editor.',
+          error: 'Connected to Supabase! The "learnai_users" table was not found yet. Please run the provided SQL setup script in Supabase SQL Editor.',
           checkedAt: timestamp,
         };
       }
