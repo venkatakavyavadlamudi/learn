@@ -1,0 +1,2 @@
+Mentor_ID,User_ID,Full_Name,Email,Phone,Qualification,Specialization,Years_Of_Experience,Skills,Availability,Max_Mentees,Status
+MEN001,USR002,Prof. Marcus Chen,marcus.chen@learnai.com,+1-555-0101,Ph.D. in Computer Science,AI & Machine Learning,8,Machine Learning;Python;System Design,Available,15,active

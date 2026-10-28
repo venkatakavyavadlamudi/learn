@@ -1,0 +1,3 @@
+Assignment_ID,Course_ID,Trainer_ID,Title,Description,Due_Date,Total_Points,Passing_Score,Batch_Name
+ASN001,CRS001,TRN001,Binary Search Tree Implementation,Build an unbalanced binary search tree with traversal,2026-11-05T23:59:00Z,100,60,Batch 2026-A
+ASN002,CRS002,TRN001,Gradient Descent from Scratch,Implement linear regression batch gradient descent,2026-11-10T23:59:00Z,100,60,Batch 2026-B

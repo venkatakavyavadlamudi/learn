@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #0A0D0C;
+    --bg-secondary: #101412;
+    --bg-card: #151A18;
+    --bg-elevated: #1B211E;
+    --primary-teal: #32D6B0;
+    --green: #78D98A;
+    --lime: #B4E85A;
+    --yellow: #F2D64B;
+    --text-primary: #F5F7F6;
+    --text-secondary: #A3ADA7;
+    --border-subtle: #29312C;
+    --error: #FF7272;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #F5F7F6;
+    background-color: #0A0D0C;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+/* UniConnect Modern Futuristic SaaS Gradient */
+.gradient-uniconnect {
+  background: linear-gradient(100deg, #32D6B0 0%, #78D98A 48%, #F2D64B 100%);
+}
+
+.text-gradient-uniconnect {
+  background: linear-gradient(100deg, #32D6B0 0%, #78D98A 48%, #F2D64B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtle grid texture background */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(41, 49, 44, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(41, 49, 44, 0.35) 1px, transparent 1px);
+}
+
+.bg-grid-fine {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(41, 49, 44, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(41, 49, 44, 0.25) 1px, transparent 1px);
+}
+
+/* Glow effects */
+.glow-teal {
+  box-shadow: 0 0 25px -5px rgba(50, 214, 176, 0.25);
+}
+
+.glow-teal-sm {
+  box-shadow: 0 0 14px -3px rgba(50, 214, 176, 0.2);
+}
+
+/* Subtle modern SaaS box shadow on dark */
+.shadow-subtle {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.shadow-card {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.shadow-card-hover:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(50, 214, 176, 0.1);
+}
+
+/* Custom dark scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0D0C;
+}
+::-webkit-scrollbar-thumb {
+  background: #29312C;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a453f;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

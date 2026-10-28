@@ -1,0 +1,541 @@
+{
+  "organizations": {
+    "COL001": {
+      "Organization_ID": "COL001",
+      "name": "Stanford Institute of Technology",
+      "type": "University",
+      "officialEmail": "contact@stanford.edu",
+      "phone": "+1 (555) 019-2831",
+      "address": "450 Serra Mall",
+      "city": "Stanford",
+      "state": "California",
+      "country": "United States",
+      "website": "https://stanford.edu",
+      "status": "Active",
+      "adminName": "Dean Robert Harrison",
+      "adminEmail": "admin@stanford.edu",
+      "createdAt": "2026-08-15T09:00:00.000Z",
+      "approvedAt": "2026-08-15T10:00:00.000Z"
+    },
+    "COL002": {
+      "Organization_ID": "COL002",
+      "name": "National Engineering Academy",
+      "type": "College",
+      "officialEmail": "info@national.edu",
+      "phone": "+1 (555) 482-9102",
+      "address": "120 Science Park Blvd",
+      "city": "Boston",
+      "state": "Massachusetts",
+      "country": "United States",
+      "website": "https://national.edu",
+      "status": "Active",
+      "adminName": "Prof. Margaret Vance",
+      "adminEmail": "admin@national.edu",
+      "createdAt": "2026-09-01T08:30:00.000Z",
+      "approvedAt": "2026-09-01T09:00:00.000Z"
+    },
+    "COL003": {
+      "Organization_ID": "COL003",
+      "name": "Apex AI Coding Bootcamp",
+      "type": "Training Institute",
+      "officialEmail": "admissions@apexbootcamp.org",
+      "phone": "+1 (555) 831-2940",
+      "address": "742 Evergreen Terrace",
+      "city": "Austin",
+      "state": "Texas",
+      "country": "United States",
+      "website": "https://apexbootcamp.org",
+      "status": "Pending Approval",
+      "adminName": "Jason Reed",
+      "adminEmail": "admin@apexbootcamp.org",
+      "createdAt": "2026-10-07T10:20:14.407Z"
+    }
+  },
+  "users": {
+    "usr_mentor_marcus": {
+      "userId": "usr_mentor_marcus",
+      "email": "marcus.vance@stanford.edu",
+      "role": "mentor",
+      "status": "approved",
+      "Organization_ID": "COL001",
+      "emailVerified": true,
+      "passwordHash": "a9df452cac7d672193fd07420f178eda7f88f0a060ca87b4fb6b2be12d1d74ff",
+      "createdAt": "2026-08-20T10:00:00.000Z"
+    },
+    "usr_trainer_sarah": {
+      "userId": "usr_trainer_sarah",
+      "email": "sarah.jenkins@stanford.edu",
+      "role": "trainer",
+      "status": "approved",
+      "Organization_ID": "COL001",
+      "emailVerified": true,
+      "passwordHash": "5287c2fc54cc32ab113ce1b7b5573bd8b19991cde5012cc6464d6d2bf816aaa1",
+      "createdAt": "2026-08-18T09:00:00.000Z"
+    },
+    "usr_stu_alex": {
+      "userId": "usr_stu_alex",
+      "email": "alex.morgan@stanford.edu",
+      "role": "student",
+      "status": "approved",
+      "Organization_ID": "COL001",
+      "emailVerified": true,
+      "passwordHash": "ccfd32d1bcf48ea8b2d4df191eede13b73e19fc04da705e12dfff4239ffcc9a7",
+      "createdAt": "2026-08-25T11:00:00.000Z"
+    },
+    "usr_stu_priya": {
+      "userId": "usr_stu_priya",
+      "email": "priya.patel@stanford.edu",
+      "role": "student",
+      "status": "approved",
+      "Organization_ID": "COL001",
+      "emailVerified": true,
+      "passwordHash": "ccfd32d1bcf48ea8b2d4df191eede13b73e19fc04da705e12dfff4239ffcc9a7",
+      "createdAt": "2026-08-28T14:00:00.000Z"
+    },
+    "usr_stu_rahul": {
+      "userId": "usr_stu_rahul",
+      "email": "rahul.sharma@national.edu",
+      "role": "student",
+      "status": "approved",
+      "Organization_ID": "COL002",
+      "emailVerified": true,
+      "passwordHash": "ccfd32d1bcf48ea8b2d4df191eede13b73e19fc04da705e12dfff4239ffcc9a7",
+      "createdAt": "2026-09-05T09:00:00.000Z"
+    },
+    "usr_pub_david": {
+      "userId": "usr_pub_david",
+      "email": "david.chen@independent.io",
+      "role": "public_user",
+      "status": "approved",
+      "Organization_ID": null,
+      "emailVerified": true,
+      "passwordHash": "81c57a6d62bd26e315702ed40b194b838472a2e9d4609e7abf0bb938ad6b5da3",
+      "createdAt": "2026-09-12T16:00:00.000Z"
+    },
+    "usr_admin_713b9922": {
+      "userId": "usr_admin_713b9922",
+      "email": "admin@learnai.com",
+      "role": "super_admin",
+      "status": "active",
+      "Organization_ID": null,
+      "emailVerified": true,
+      "passwordHash": "de065118121428f34b716dfe7a7f6ae99b4dec7f7c5b2d6d5aa09b7a45c96c10",
+      "createdAt": "2026-10-07T10:20:50.976Z"
+    },
+    "usr_superadmin_01": {
+      "userId": "usr_superadmin_01",
+      "email": "superadmin@learnai.com",
+      "role": "super_admin",
+      "status": "active",
+      "Organization_ID": null,
+      "emailVerified": true,
+      "passwordHash": "dc84035f19a40a189275b865274ea5e83552fe2582300d2fb724771ced035de1",
+      "createdAt": "2026-08-01T08:00:00.000Z"
+    },
+    "usr_adm_stanford": {
+      "userId": "usr_adm_stanford",
+      "email": "admin@stanford.edu",
+      "role": "institution_admin",
+      "status": "active",
+      "Organization_ID": "COL001",
+      "emailVerified": true,
+      "passwordHash": "b8e3bd2c4029467b9ac9458bc4ecb814b601aa534902b5dd3e40a5056324fb86",
+      "createdAt": "2026-08-15T09:00:00.000Z"
+    },
+    "usr_adm_national": {
+      "userId": "usr_adm_national",
+      "email": "admin@national.edu",
+      "role": "institution_admin",
+      "status": "active",
+      "Organization_ID": "COL002",
+      "emailVerified": true,
+      "passwordHash": "b8e3bd2c4029467b9ac9458bc4ecb814b601aa534902b5dd3e40a5056324fb86",
+      "createdAt": "2026-09-01T08:30:00.000Z"
+    }
+  },
+  "admins": {
+    "adm_ef308629": {
+      "adminId": "adm_ef308629",
+      "userId": "usr_admin_713b9922",
+      "fullName": "Master Administrator",
+      "email": "admin@learnai.com",
+      "role": "super_admin",
+      "Organization_ID": null,
+      "status": "active",
+      "createdAt": "2026-10-07T10:20:50.976Z"
+    },
+    "adm_super_01": {
+      "adminId": "adm_super_01",
+      "userId": "usr_superadmin_01",
+      "fullName": "Chief Super Administrator",
+      "email": "superadmin@learnai.com",
+      "role": "super_admin",
+      "Organization_ID": null,
+      "status": "active",
+      "createdAt": "2026-08-01T08:00:00.000Z"
+    },
+    "adm_col001": {
+      "adminId": "adm_col001",
+      "userId": "usr_adm_stanford",
+      "fullName": "Dean Robert Harrison",
+      "email": "admin@stanford.edu",
+      "role": "institution_admin",
+      "Organization_ID": "COL001",
+      "status": "active",
+      "createdAt": "2026-08-15T09:00:00.000Z"
+    },
+    "adm_col002": {
+      "adminId": "adm_col002",
+      "userId": "usr_adm_national",
+      "fullName": "Prof. Margaret Vance",
+      "email": "admin@national.edu",
+      "role": "institution_admin",
+      "Organization_ID": "COL002",
+      "status": "active",
+      "createdAt": "2026-09-01T08:30:00.000Z"
+    }
+  },
+  "students": {
+    "stu_alex": {
+      "studentId": "stu_alex",
+      "userId": "usr_stu_alex",
+      "fullName": "Alex Morgan",
+      "email": "alex.morgan@stanford.edu",
+      "phone": "+1 (555) 782-9301",
+      "Organization_ID": "COL001",
+      "collegeName": "Stanford Institute of Technology",
+      "degree": "B.S. in Computer Science",
+      "branch": "Artificial Intelligence & Systems",
+      "graduationYear": "2026",
+      "experienceLevel": "Intermediate",
+      "learningLevel": "Undergraduate",
+      "skills": [
+        "Python",
+        "SQL",
+        "FastAPI",
+        "Algorithms"
+      ],
+      "careerGoal": "Data Analyst",
+      "interestedCourse": "CRS001",
+      "Course_ID": "CRS001",
+      "Mentor_ID": "mnt_marcus",
+      "courseProgress": 68,
+      "readinessScore": 82,
+      "status": "approved",
+      "createdAt": "2026-08-25T11:00:00.000Z"
+    },
+    "stu_priya": {
+      "studentId": "stu_priya",
+      "userId": "usr_stu_priya",
+      "fullName": "Priya Patel",
+      "email": "priya.patel@stanford.edu",
+      "phone": "+1 (555) 619-2049",
+      "Organization_ID": "COL001",
+      "collegeName": "Stanford Institute of Technology",
+      "degree": "B.S. in Data Engineering",
+      "branch": "Information Systems",
+      "graduationYear": "2027",
+      "experienceLevel": "Beginner",
+      "learningLevel": "Undergraduate",
+      "skills": [
+        "Python",
+        "Statistics",
+        "Excel"
+      ],
+      "careerGoal": "AI / ML Engineer",
+      "interestedCourse": "CRS001",
+      "Course_ID": "CRS001",
+      "Mentor_ID": "mnt_marcus",
+      "courseProgress": 45,
+      "readinessScore": 70,
+      "status": "approved",
+      "createdAt": "2026-08-28T14:00:00.000Z"
+    },
+    "stu_rahul": {
+      "studentId": "stu_rahul",
+      "userId": "usr_stu_rahul",
+      "fullName": "Rahul Sharma",
+      "email": "rahul.sharma@national.edu",
+      "phone": "+1 (555) 304-1829",
+      "Organization_ID": "COL002",
+      "collegeName": "National Engineering Academy",
+      "degree": "B.Tech in Information Technology",
+      "branch": "Software Systems",
+      "graduationYear": "2026",
+      "experienceLevel": "Intermediate",
+      "learningLevel": "Undergraduate",
+      "skills": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "SQL"
+      ],
+      "careerGoal": "Full-Stack Developer",
+      "interestedCourse": "CRS002",
+      "Course_ID": "CRS002",
+      "courseProgress": 52,
+      "readinessScore": 78,
+      "status": "approved",
+      "createdAt": "2026-09-05T09:00:00.000Z"
+    }
+  },
+  "public_users": {
+    "pub_david": {
+      "publicUserId": "pub_david",
+      "userId": "usr_pub_david",
+      "fullName": "David Chen",
+      "email": "david.chen@independent.io",
+      "phone": "+1 (555) 412-9831",
+      "Organization_ID": null,
+      "User_Type": "Public User",
+      "skills": [
+        "Python",
+        "SQL",
+        "Git"
+      ],
+      "careerGoal": "Data Analyst",
+      "learningLevel": "Professional",
+      "interestedCourse": "CRS001",
+      "status": "approved",
+      "createdAt": "2026-09-12T16:00:00.000Z"
+    }
+  },
+  "mentors": {
+    "mnt_marcus": {
+      "mentorId": "mnt_marcus",
+      "userId": "usr_mentor_marcus",
+      "fullName": "Dr. Marcus Vance",
+      "email": "marcus.vance@stanford.edu",
+      "phone": "+1 (555) 234-5678",
+      "Organization_ID": "COL001",
+      "qualification": "Ph.D. in Computer Science (MIT)",
+      "specialization": "Staff AI Engineer & Career Guidance",
+      "yearsOfExperience": 9,
+      "skills": [
+        "Python",
+        "PyTorch",
+        "System Design",
+        "Mock Interviews"
+      ],
+      "availability": "Mon, Wed, Fri (Afternoons)",
+      "status": "approved",
+      "createdAt": "2026-08-20T10:00:00.000Z"
+    }
+  },
+  "trainers": {
+    "trn_sarah": {
+      "trainerId": "trn_sarah",
+      "userId": "usr_trainer_sarah",
+      "fullName": "Prof. Sarah Jenkins",
+      "email": "sarah.jenkins@stanford.edu",
+      "phone": "+1 (555) 987-6543",
+      "Organization_ID": "COL001",
+      "qualification": "M.S. in Machine Learning, Senior Curriculum Lead",
+      "specialization": "Python, Data Science & AI Curricula",
+      "experience": 8,
+      "skills": [
+        "Python",
+        "SQL",
+        "FastAPI",
+        "Pedagogy",
+        "Machine Learning"
+      ],
+      "status": "approved",
+      "createdAt": "2026-08-18T09:00:00.000Z"
+    }
+  },
+  "courses": {
+    "CRS001": {
+      "Course_ID": "CRS001",
+      "title": "Modern Python for AI & Data Analysis",
+      "description": "Comprehensive foundational and advanced Python syntax, data structures, OOP, Pandas, and NumPy for career success.",
+      "category": "Programming & AI",
+      "duration": "8 Weeks (32 Hours)",
+      "difficulty": "Beginner",
+      "skillsCovered": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Data Structures",
+        "OOP"
+      ],
+      "learningLevel": "Undergraduate",
+      "Organization_ID": "COL001",
+      "Trainer_ID": "trn_sarah",
+      "enrolledCount": 142,
+      "rating": 4.9,
+      "totalLessons": 16,
+      "completedLessons": 11,
+      "lessons": [
+        {
+          "id": "les_01",
+          "title": "Python Syntax & Dynamic Typing",
+          "duration": "45m",
+          "completed": true,
+          "contentSummary": "Core language keywords, type hints, and primitives"
+        },
+        {
+          "id": "les_02",
+          "title": "Data Structures: Lists, Dictionaries & Sets",
+          "duration": "50m",
+          "completed": true,
+          "contentSummary": "Time complexities and hash lookups"
+        },
+        {
+          "id": "les_03",
+          "title": "Functional Programming & List Comprehensions",
+          "duration": "40m",
+          "completed": true,
+          "contentSummary": "Map, filter, lambda and generator functions"
+        },
+        {
+          "id": "les_04",
+          "title": "Pandas DataFrames & Real-world Data Wrangling",
+          "duration": "60m",
+          "completed": false,
+          "contentSummary": "Cleaning, merging, and grouping tabular datasets"
+        }
+      ]
+    },
+    "CRS002": {
+      "Course_ID": "CRS002",
+      "title": "Enterprise SQL & Relational Database Systems",
+      "description": "Master relational schema design, complex joins, subqueries, indexing, window functions and query performance tuning.",
+      "category": "Data & Databases",
+      "duration": "6 Weeks (24 Hours)",
+      "difficulty": "Intermediate",
+      "skillsCovered": [
+        "SQL",
+        "PostgreSQL",
+        "Query Optimization",
+        "Relational Design"
+      ],
+      "learningLevel": "Undergraduate",
+      "Organization_ID": "COL001",
+      "Trainer_ID": "trn_sarah",
+      "enrolledCount": 98,
+      "rating": 4.8,
+      "totalLessons": 12,
+      "completedLessons": 6,
+      "lessons": [
+        {
+          "id": "les_sql_01",
+          "title": "Relational Schemas & Foreign Key Constraints",
+          "duration": "40m",
+          "completed": true,
+          "contentSummary": "Normalization to 3NF and constraint enforcement"
+        },
+        {
+          "id": "les_sql_02",
+          "title": "Advanced Window Functions (RANK, OVER, PARTITION)",
+          "duration": "55m",
+          "completed": false,
+          "contentSummary": "Analytic computations over partitioned result sets"
+        }
+      ]
+    },
+    "CRS003": {
+      "Course_ID": "CRS003",
+      "title": "Generative AI & LLM Application Development",
+      "description": "Build production-ready LLM agents, Retrieval-Augmented Generation (RAG) pipelines, and prompt architectures with Gemini.",
+      "category": "Artificial Intelligence",
+      "duration": "10 Weeks (40 Hours)",
+      "difficulty": "Advanced",
+      "skillsCovered": [
+        "Python",
+        "FastAPI",
+        "RAG",
+        "Vector Search",
+        "Prompt Engineering",
+        "LangChain"
+      ],
+      "learningLevel": "Professional",
+      "Organization_ID": null,
+      "enrolledCount": 310,
+      "rating": 5,
+      "totalLessons": 20,
+      "completedLessons": 4,
+      "lessons": [
+        {
+          "id": "les_genai_01",
+          "title": "Transformer Self-Attention Foundations",
+          "duration": "50m",
+          "completed": true,
+          "contentSummary": "Tokenization, attention weights, and context windows"
+        },
+        {
+          "id": "les_genai_02",
+          "title": "Building Scalable RAG Architectures",
+          "duration": "65m",
+          "completed": false,
+          "contentSummary": "Embeddings, vector indexing, and hybrid retrieval"
+        }
+      ]
+    }
+  },
+  "assignments": {
+    "asg_01": {
+      "assignmentId": "asg_01",
+      "courseId": "CRS001",
+      "courseTitle": "Modern Python for AI & Data Analysis",
+      "title": "Building a Modular ETL Pipeline with Pandas",
+      "description": "Read JSON logs, transform timestamps, calculate user engagement metrics, and write cleaned Parquet outputs.",
+      "dueDate": "2026-10-25T23:59:59.000Z",
+      "totalPoints": 100,
+      "submittedCount": 88,
+      "avgScore": 91
+    },
+    "asg_02": {
+      "assignmentId": "asg_02",
+      "courseId": "CRS002",
+      "courseTitle": "Enterprise SQL & Relational Database Systems",
+      "title": "Multi-Tenant Analytics Query Optimization",
+      "description": "Write window ranking queries across million-row transactional tables with explain plans.",
+      "dueDate": "2026-10-28T23:59:59.000Z",
+      "totalPoints": 100,
+      "submittedCount": 64,
+      "avgScore": 84
+    }
+  },
+  "mentor_feedbacks": {
+    "fb_01": {
+      "feedbackId": "fb_01",
+      "mentorId": "mnt_marcus",
+      "mentorName": "Dr. Marcus Vance",
+      "studentId": "stu_alex",
+      "studentName": "Alex Morgan",
+      "notes": "Alex demonstrates strong Python and SQL foundations. Recommended focusing on Power BI and statistical modeling for senior analyst interviews.",
+      "recommendation": "Complete Statistics & Power BI module before next mock technical interview session.",
+      "createdAt": "2026-10-02T15:30:00.000Z"
+    }
+  },
+  "join_requests": {},
+  "contact_messages": {},
+  "verification_codes": {},
+  "role_history": {
+    "rh_sample_01": {
+      "historyId": "rh_sample_01",
+      "userId": "usr_mentor_marcus",
+      "userName": "Dr. Marcus Vance",
+      "userEmail": "marcus.vance@stanford.edu",
+      "previousRole": "student",
+      "newRole": "mentor",
+      "changedBy": "admin@stanford.edu",
+      "organizationId": "COL001",
+      "changedDate": "2026-08-20T10:00:00.000Z",
+      "reason": "Promoted to Lead AI & Python Mentor after academic credential review"
+    },
+    "rh_sample_02": {
+      "historyId": "rh_sample_02",
+      "userId": "usr_trainer_sarah",
+      "userName": "Prof. Sarah Jenkins",
+      "userEmail": "sarah.jenkins@stanford.edu",
+      "previousRole": "student",
+      "newRole": "trainer",
+      "changedBy": "admin@stanford.edu",
+      "organizationId": "COL001",
+      "changedDate": "2026-08-18T09:00:00.000Z",
+      "reason": "Assigned as Course Trainer for Python & AI Curriculum delivery"
+    }
+  }
+}

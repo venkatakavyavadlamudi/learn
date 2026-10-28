@@ -1,0 +1,2 @@
+Escalation_ID,Mentor_ID,Student_ID,Reason,Severity,Description,Action_Taken,Status,Created_At,Resolved_At
+ESC001,MEN001,STU002,Low Attendance / Inactive,High,Student missed 2 consecutive live lab sessions and lagging on assignment 2,Scheduled 1-on-1 check-in call with student,in_progress,2026-10-24T09:00:00Z,null

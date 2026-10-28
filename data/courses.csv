@@ -1,0 +1,4 @@
+Course_ID,Title,Description,Category,Duration,Difficulty,Skills_Covered,Learning_Level,Trainer_ID,Enrolled_Count,Rating,Total_Lessons,Is_Published
+CRS001,Modern Python for AI,Master core Python syntax and OOP for machine learning systems,Computer Science,8 Weeks,Beginner,Python;OOP;Data Structures,Undergraduate,TRN001,120,4.90,24,TRUE
+CRS002,Machine Learning Foundations,Statistical learning and neural networks,Artificial Intelligence,10 Weeks,Intermediate,Linear Regression;Scikit-Learn;Math,Undergraduate,TRN001,95,4.85,25,TRUE
+CRS003,Generative AI & LLMs,Production RAG and prompt engineering,Artificial Intelligence,10 Weeks,Intermediate,LangChain;FastAPI;Vector DBs,Undergraduate,TRN001,110,4.95,20,TRUE

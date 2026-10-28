@@ -1,0 +1,3 @@
+Interview_ID,Student_ID,Mentor_ID,Attempt_Label,Role_Title,Technical_Score,Behavioral_Score,Overall_Score,Cohort_Avg_Score,Feedback,Scheduled_At,Completed_At
+INT001,STU001,MEN001,Attempt 1,Software Engineer,68.0,72.0,70.0,65.0,Good problem decomposition; clarify time complexity earlier,2026-10-10T10:00:00Z,2026-10-10T11:00:00Z
+INT002,STU001,MEN001,Attempt 2,Software Engineer,82.0,80.0,81.0,73.0,Much better handling of edge cases in binary tree traversals,2026-10-20T10:00:00Z,2026-10-20T11:00:00Z

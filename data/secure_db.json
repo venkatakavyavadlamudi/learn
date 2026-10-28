@@ -1,0 +1,193 @@
+{
+  "users": {
+    "usr_student_alex": {
+      "userId": "usr_student_alex",
+      "email": "alex.morgan@university.edu",
+      "role": "student",
+      "status": "approved",
+      "emailVerified": true,
+      "passwordHash": "ccfd32d1bcf48ea8b2d4df191eede13b73e19fc04da705e12dfff4239ffcc9a7",
+      "createdAt": "2026-09-10T10:00:00.000Z",
+      "approvedAt": "2026-09-10T10:30:00.000Z",
+      "approvedBy": "system@learnai.com"
+    },
+    "usr_student_rahul": {
+      "userId": "usr_student_rahul",
+      "email": "rahul.kumar@tech.edu",
+      "role": "student",
+      "status": "pending",
+      "emailVerified": true,
+      "passwordHash": "ccfd32d1bcf48ea8b2d4df191eede13b73e19fc04da705e12dfff4239ffcc9a7",
+      "createdAt": "2026-10-01T09:15:00.000Z"
+    },
+    "usr_trainer_sarah": {
+      "userId": "usr_trainer_sarah",
+      "email": "sarah.jenkins@learnai.com",
+      "role": "trainer",
+      "status": "approved",
+      "emailVerified": true,
+      "passwordHash": "5287c2fc54cc32ab113ce1b7b5573bd8b19991cde5012cc6464d6d2bf816aaa1",
+      "createdAt": "2026-09-05T09:00:00.000Z",
+      "approvedAt": "2026-09-05T09:30:00.000Z",
+      "approvedBy": "admin@learnai.com"
+    },
+    "usr_mentor_marcus": {
+      "userId": "usr_mentor_marcus",
+      "email": "marcus.vance@industry.com",
+      "role": "mentor",
+      "status": "approved",
+      "emailVerified": true,
+      "passwordHash": "a9df452cac7d672193fd07420f178eda7f88f0a060ca87b4fb6b2be12d1d74ff",
+      "createdAt": "2026-09-08T11:00:00.000Z",
+      "approvedAt": "2026-09-08T11:45:00.000Z",
+      "approvedBy": "admin@learnai.com"
+    },
+    "usr_mentor_priya": {
+      "userId": "usr_mentor_priya",
+      "email": "priya.mentor@techcorp.com",
+      "role": "mentor",
+      "status": "pending",
+      "emailVerified": true,
+      "passwordHash": "a9df452cac7d672193fd07420f178eda7f88f0a060ca87b4fb6b2be12d1d74ff",
+      "createdAt": "2026-10-02T14:20:00.000Z"
+    }
+  },
+  "admins": {},
+  "students": {
+    "stu_alex": {
+      "studentId": "stu_alex",
+      "userId": "usr_student_alex",
+      "fullName": "Alex Morgan",
+      "email": "alex.morgan@university.edu",
+      "phone": "+1 (555) 234-5678",
+      "college": "State University of Technology",
+      "degree": "B.S.",
+      "branch": "Computer Science & Engineering",
+      "graduationYear": "2026",
+      "careerGoal": "AI / Machine Learning Engineer",
+      "skills": [
+        "Python",
+        "SQL",
+        "Algorithms",
+        "FastAPI"
+      ],
+      "role": "student",
+      "status": "approved",
+      "createdAt": "2026-09-10T10:00:00.000Z"
+    },
+    "stu_rahul": {
+      "studentId": "stu_rahul",
+      "userId": "usr_student_rahul",
+      "fullName": "Rahul Kumar",
+      "email": "rahul.kumar@tech.edu",
+      "phone": "+1 (555) 789-0123",
+      "college": "National Institute of Technology",
+      "degree": "B.Tech",
+      "branch": "Information Technology",
+      "graduationYear": "2027",
+      "careerGoal": "Full-Stack GenAI Developer",
+      "skills": [
+        "Python",
+        "React",
+        "Data Structures"
+      ],
+      "role": "student",
+      "status": "pending",
+      "createdAt": "2026-10-01T09:15:00.000Z"
+    }
+  },
+  "mentors": {
+    "mnt_marcus": {
+      "mentorId": "mnt_marcus",
+      "userId": "usr_mentor_marcus",
+      "fullName": "Marcus Vance",
+      "email": "marcus.vance@industry.com",
+      "phone": "+1 (555) 321-9876",
+      "qualification": "M.S. in Machine Learning (MIT)",
+      "yearsOfExperience": 8,
+      "expertSkills": [
+        "Mock Technical Interviews",
+        "Career Guidance",
+        "System Design",
+        "LLM Engineering"
+      ],
+      "specialization": "Staff AI Engineer & Career Mentor",
+      "role": "mentor",
+      "verificationStatus": "verified",
+      "status": "approved",
+      "createdAt": "2026-09-08T11:00:00.000Z"
+    },
+    "mnt_priya": {
+      "mentorId": "mnt_priya",
+      "userId": "usr_mentor_priya",
+      "fullName": "Priya Sharma",
+      "email": "priya.mentor@techcorp.com",
+      "phone": "+1 (555) 654-3210",
+      "qualification": "B.Tech in Artificial Intelligence",
+      "yearsOfExperience": 5,
+      "expertSkills": [
+        "PyTorch",
+        "Transformers",
+        "Resume Review",
+        "Interview Prep"
+      ],
+      "specialization": "Natural Language Processing & LLMs",
+      "role": "mentor",
+      "verificationStatus": "verified",
+      "usedVerificationCodeId": "code_demo_mentor_01",
+      "status": "pending",
+      "createdAt": "2026-10-02T14:20:00.000Z"
+    }
+  },
+  "trainers": {
+    "trn_sarah": {
+      "trainerId": "trn_sarah",
+      "userId": "usr_trainer_sarah",
+      "fullName": "Dr. Sarah Jenkins",
+      "email": "sarah.jenkins@learnai.com",
+      "phone": "+1 (555) 456-7890",
+      "qualification": "Ph.D. in Computer Science (Stanford)",
+      "experience": 9,
+      "specialization": "Python, Algorithms & AI Curricula",
+      "skills": [
+        "Python",
+        "System Architecture",
+        "Pedagogy",
+        "Machine Learning"
+      ],
+      "role": "trainer",
+      "verificationStatus": "verified",
+      "status": "approved",
+      "createdAt": "2026-09-05T09:00:00.000Z"
+    }
+  },
+  "notifications": {},
+  "verification_codes": {
+    "code_demo_mentor_01": {
+      "codeId": "code_demo_mentor_01",
+      "codeHash": "c25f984e6d447187aea8d3c3394c110044b6756a3df9a0946ba0b1462edda81b",
+      "plainCodeMasked": "MENT-****-RE",
+      "role": "mentor",
+      "status": "active",
+      "expiresAt": "2026-11-04T09:49:53.197Z",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "createdBy": "admin@learnai.com",
+      "usageLimit": 10,
+      "usageCount": 1,
+      "note": "Default Authorized Mentor Intake Code"
+    },
+    "code_demo_trainer_01": {
+      "codeId": "code_demo_trainer_01",
+      "codeHash": "241e9dbd0c7ece11fad4f8a5f7a2bc1cbef44a10a0bad7dad194af50f40fcd8e",
+      "plainCodeMasked": "TRAI-****-TH",
+      "role": "trainer",
+      "status": "active",
+      "expiresAt": "2026-11-04T09:49:53.197Z",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "createdBy": "admin@learnai.com",
+      "usageLimit": 10,
+      "usageCount": 0,
+      "note": "Default Authorized Trainer Curriculum Lead Code"
+    }
+  }
+}

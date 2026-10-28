@@ -1,0 +1,4 @@
+Assessment_ID,Student_ID,Course_ID,Skill_Name,Category,Score,Benchmark_Score,Target_Score,Percentile,Assessment_Date,Status
+ASM001,STU001,CRS001,Python Programming,Technical Core,88.0,75.0,85.0,Top 15%,2026-10-20T12:00:00Z,passed
+ASM002,STU001,CRS001,SQL Querying,Technical Core,82.0,75.0,85.0,Top 25%,2026-10-15T12:00:00Z,passed
+ASM003,STU002,CRS002,Linear Regression,Machine Learning,64.0,75.0,85.0,Top 55%,2026-10-18T12:00:00Z,needs_improvement

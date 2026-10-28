@@ -1,0 +1,7 @@
+{
+  "name": "AI Learning & Career Success Platform",
+  "description": "Personalized AI learning for students, colleges and training institutions. Learn Smarter. Build Skills. Reach Your Career.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

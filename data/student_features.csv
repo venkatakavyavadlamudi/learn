@@ -1,0 +1,3 @@
+Student_ID,Readiness_Score,Job_Ready_Target,Overall_Progress,Streak_Days,Weekly_Study_Hours,Target_Study_Hours,Avg_Assessment_Score,Assignments_Completed,Total_Assignments,Attendance_Rate,Risk_Status,Last_Active_At
+STU001,74.5,75.0,68.0,7,14.5,15.0,82.0,12,15,92.0,Good,2026-10-25T10:00:00Z
+STU002,54.0,75.0,42.0,2,8.0,15.0,62.0,6,15,74.0,Needs Attention,2026-10-24T15:00:00Z

@@ -1,0 +1,3 @@
+Chunk_ID,Course_ID,Module_ID,Module_Title,Chunk_Order,Title,Duration,Content_Summary,Content_Body,Resource_URL,Is_Published
+CHK001,CRS001,MOD001,Python Syntax & OOP,1,Variables & Memory Management,25 min,Mutable vs immutable types and references,,https://resources.learnai.com/py1.pdf,TRUE
+CHK002,CRS001,MOD001,Python Syntax & OOP,2,Functions and Decorators,35 min,First class functions and closures,,https://resources.learnai.com/py2.pdf,TRUE

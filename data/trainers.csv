@@ -1,0 +1,2 @@
+Trainer_ID,User_ID,Full_Name,Email,Phone,Qualification,Specialization,Experience_Years,Skills,Courses_Can_Teach,Status
+TRN001,USR003,Dr. Sarah Jenkins,sarah.jenkins@learnai.com,+1-555-0102,Ph.D. Software Engineering,Full-Stack & Cloud,10,Python;Cloud Architecture;FastAPI,Modern Python for AI;Enterprise SQL,active

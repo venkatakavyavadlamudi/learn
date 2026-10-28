@@ -1,0 +1,6 @@
+User_ID,Email,Full_Name,Role,Status,Phone,Avatar_URL,Created_At
+USR001,superadmin@learnai.com,System Administrator,admin,active,+1-555-0100,,2026-08-01T00:00:00Z
+USR002,marcus.chen@learnai.com,Prof. Marcus Chen,mentor,active,+1-555-0101,,2026-08-01T00:00:00Z
+USR003,sarah.jenkins@learnai.com,Dr. Sarah Jenkins,trainer,active,+1-555-0102,,2026-08-01T00:00:00Z
+USR004,alex.morgan@learnai.com,Alex Morgan,student,active,+1-555-0103,,2026-08-01T00:00:00Z
+USR005,priya.sharma@learnai.com,Priya Sharma,student,active,+1-555-0104,,2026-08-01T00:00:00Z

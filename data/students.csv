@@ -1,0 +1,3 @@
+Student_ID,User_ID,Full_Name,Email,Phone,College_Name,Degree,Branch,Graduation_Year,Learning_Level,Skills,Career_Goal,Current_Course_ID,Mentor_ID,Status
+STU001,USR004,Alex Morgan,alex.morgan@learnai.com,+1-555-0103,State University,Bachelor of Technology,Computer Science,2026,Undergraduate,Python;SQL;Git,Software Engineer,CRS001,MEN001,active
+STU002,USR005,Priya Sharma,priya.sharma@learnai.com,+1-555-0104,National Institute,Bachelor of Technology,Data Science,2026,Undergraduate,Python;Scikit-Learn;Math,AI Engineer,CRS002,MEN001,active

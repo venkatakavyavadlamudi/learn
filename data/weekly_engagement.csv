@@ -1,0 +1,6 @@
+Engagement_ID,Student_ID,Week_Label,Day_Name,Study_Hours,Target_Hours,Active_Logins,Lessons_Completed,Recorded_Date
+ENG001,STU001,Wk 1,Mon,2.5,2.5,2,1,2026-10-20
+ENG002,STU001,Wk 1,Tue,3.0,2.5,3,2,2026-10-21
+ENG003,STU001,Wk 1,Wed,2.0,2.5,1,1,2026-10-22
+ENG004,STU001,Wk 1,Thu,3.5,2.5,2,2,2026-10-23
+ENG005,STU001,Wk 1,Fri,3.5,2.5,2,2,2026-10-24

@@ -1,0 +1,3 @@
+Doubt_ID,Student_ID,Course_ID,Mentor_ID,Topic,Question,Priority,Resolution_Status,Solution,Asked_At,Resolved_At
+DBT001,STU001,CRS001,MEN001,Dynamic Programming Tabulation,Cannot formulate state transitions for 0/1 Knapsack,urgent,resolved,Remember that dp[i][w] depends on dp[i-1][w] and dp[i-1][w-wt[i]],2026-10-22T08:00:00Z,2026-10-22T11:00:00Z
+DBT002,STU002,CRS002,MEN001,Gradient Vanishing in Deep Nets,Why does ReLU avoid vanishing gradients?,normal,pending,,2026-10-24T14:00:00Z,null
