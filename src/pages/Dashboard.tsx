@@ -23,6 +23,7 @@ import { CourseProgressList } from '../components/dashboard/CourseProgressList';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { DashboardFilterBar, TimeRange } from '../components/dashboard/DashboardFilterBar';
 import { dashboardDataService, StudentDashboardData } from '../services/dashboardDataService';
+import { staffAllocationService } from '../services/staffAllocationService';
 import {
   BookOpen,
   TrendingUp,
@@ -53,6 +54,9 @@ import {
   Calendar,
   Flame,
   ArrowRight,
+  GraduationCap,
+  Compass,
+  Plus,
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
@@ -153,6 +157,11 @@ export const Dashboard: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
+  // Support Team & Catalogue State
+  const [supportTeam, setSupportTeam] = useState<{ trainer?: any; mentor?: any } | null>(null);
+  const [catalogue, setCatalogue] = useState<Course[]>([]);
+  const [isEnrolling, setIsEnrolling] = useState<string | null>(null);
+
   useEffect(() => {
     let isMounted = true;
     setDataLoading(true);
@@ -191,6 +200,40 @@ export const Dashboard: React.FC = () => {
         }
       }
     });
+
+    // Fetch support team and catalogue
+    const fetchSupportAndCatalogue = async () => {
+       if (!currentUser) return;
+       try {
+         // Fetch catalogue
+         const cat = await staffAllocationService.getCourseCatalogue();
+         if (isMounted) setCatalogue(cat);
+
+         // Fetch support team from students table
+         if (!supabase) return;
+         const { data: stu } = await supabase
+           .from('students')
+           .select('trainer_id, mentor_id')
+           .eq('user_id', currentUser.id)
+           .maybeSingle();
+
+         if (stu && isMounted) {
+           const team: any = {};
+           if (stu.trainer_id) {
+             const { data: trn } = await supabase.from('trainers').select('*').eq('trainer_id', stu.trainer_id).maybeSingle();
+             team.trainer = trn;
+           }
+           if (stu.mentor_id) {
+             const { data: men } = await supabase.from('mentors').select('*').eq('mentor_id', stu.mentor_id).maybeSingle();
+             team.mentor = men;
+           }
+           setSupportTeam(team);
+         }
+       } catch (err) {
+         console.warn('Failed to fetch support team or catalogue', err);
+       }
+    };
+    fetchSupportAndCatalogue();
 
     return () => {
       isMounted = false;
@@ -437,7 +480,7 @@ Please evaluate with: Communication Score (out of 100), Technical Score (out of 
     }
   };
 
-  // Learning Roadmap stages per specification
+  // roadmap stages...
   const roadmapStages = [
     { name: 'Python', status: 'completed' },
     { name: 'SQL', status: 'completed' },
@@ -448,6 +491,35 @@ Please evaluate with: Communication Score (out of 100), Technical Score (out of 
     { name: 'Machine Learning', status: 'upcoming' },
     { name: 'Mock Interview', status: 'upcoming' },
   ];
+
+  const handleEnroll = async (courseId: string) => {
+    if (!currentUser || isEnrolling) return;
+    setIsEnrolling(courseId);
+    try {
+      const res = await staffAllocationService.enrollInCourse(currentUser.id, courseId);
+      if (res.success) {
+        // Refresh enrollments
+        const updatedEnrollments = await staffAllocationService.getStudentEnrollments(currentUser.id);
+        const mappedCourses: Course[] = updatedEnrollments.map((c) => ({
+          ...c,
+          Course_ID: c.id || '',
+          lessons: [],
+          skillsCovered: c.skillsCovered || [],
+          learningLevel: c.learningLevel || 'Intermediate',
+          enrolledCount: c.enrolledCount || 0,
+          rating: c.rating || 5,
+        }));
+        setCourses(mappedCourses);
+        // show success toast or similar if implemented
+      } else {
+        alert(res.error);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsEnrolling(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0D0C] flex">
@@ -839,41 +911,148 @@ Please evaluate with: Communication Score (out of 100), Technical Score (out of 
                       </div>
                     </div>
 
-                    {/* AI Learning Assistant Quick Entry Point */}
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-[#151A18] via-[#101F1B] to-[#151A18] border border-[#32D6B0]/40 space-y-3.5 shadow-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#32D6B0] text-[#0A0D0C] flex items-center justify-center font-bold shrink-0">
-                          <Bot className="w-5 h-5" />
+                    </div>
+                    
+                    {/* My Support Team Section */}
+                    <div className="p-5 rounded-2xl bg-[#151A18] border border-[#29312C] mt-6 space-y-4 shadow-lg">
+                      <div className="flex items-center gap-2 pb-2 border-b border-[#29312C]">
+                        <Users className="w-4 h-4 text-[#32D6B0]" />
+                        <h3 className="text-sm font-bold font-['Outfit'] text-[#F5F7F6]">
+                          My Support Team
+                        </h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {/* Trainer */}
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#32D6B0]/10 flex items-center justify-center shrink-0">
+                            <GraduationCap className="w-4 h-4 text-[#32D6B0]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] text-[#A3ADA7] uppercase font-bold tracking-wider">Responsible Trainer</p>
+                            <p className="text-sm font-bold text-[#F5F7F6] truncate">
+                              {supportTeam?.trainer?.full_name || 'Assignment Pending'}
+                            </p>
+                            {supportTeam?.trainer && (
+                              <p className="text-[11px] text-[#32D6B0] truncate">{supportTeam.trainer.specialization}</p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-sm font-bold font-['Outfit'] text-[#F5F7F6]">
-                            AI Learning Assistant
-                          </h4>
-                          <p className="text-[11px] text-[#32D6B0]">24/7 Socratic Tutor &amp; Career Coach</p>
+
+                        {/* Mentor */}
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#B4E85A]/10 flex items-center justify-center shrink-0">
+                            <Compass className="w-4 h-4 text-[#B4E85A]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] text-[#A3ADA7] uppercase font-bold tracking-wider">Responsible Mentor</p>
+                            <p className="text-sm font-bold text-[#F5F7F6] truncate">
+                              {supportTeam?.mentor?.full_name || 'Assignment Pending'}
+                            </p>
+                            {supportTeam?.mentor && (
+                              <p className="text-[11px] text-[#B4E85A] truncate">{supportTeam.mentor.specialization}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <p className="text-xs text-[#A3ADA7] leading-relaxed">
-                        Need help debugging code, preparing for mock technical questions, or understanding deep algorithms?
-                      </p>
-
-                      <div className="space-y-1.5">
-                        <button
-                          onClick={() => setActiveTab('ai_assistant')}
-                          className="w-full py-2.5 px-4 bg-[#32D6B0] hover:bg-[#78D98A] text-[#0A0D0C] text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                          <span>Open AI Learning Assistant</span>
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('mock_interview')}
-                          className="w-full py-2 px-4 bg-[#1B211E] hover:bg-[#29312C] text-[#F5F7F6] text-xs font-semibold rounded-xl border border-[#29312C] transition-all flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                          <Users className="w-3.5 h-3.5 text-[#32D6B0]" />
-                          <span>Launch AI Mock Interview</span>
-                        </button>
+                      <div className="pt-2 border-t border-[#29312C]">
+                        <p className="text-[10px] text-[#A3ADA7] leading-relaxed italic">
+                          Your assigned team provides dedicated instruction and career guidance.
+                        </p>
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+              {/* ========================================================= */}
+              {/* TAB: COURSE CATALOGUE                                     */}
+              {/* ========================================================= */}
+              {activeTab === 'course_catalogue' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-2xl font-bold text-[#F5F7F6]">Course Catalogue</h1>
+                      <p className="text-xs sm:text-sm text-[#A3ADA7] mt-1">
+                        Browse and enroll in accredited AI and Software Engineering tracks.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {catalogue.map((course) => {
+                      const isEnrolled = courses.some(c => c.id === course.id);
+                      return (
+                        <div key={course.id} className="bg-[#151A18] rounded-2xl border border-[#29312C] p-6 space-y-4 shadow-lg flex flex-col justify-between">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#101F1B] text-[#32D6B0] border border-[#32D6B0]/20 uppercase">
+                                {course.category}
+                              </span>
+                              <div className="flex items-center gap-1 text-[11px] font-mono text-[#F2D64B]">
+                                <Award className="w-3 h-3" />
+                                <span>{course.rating}</span>
+                              </div>
+                            </div>
+                            <h3 className="text-lg font-bold text-[#F5F7F6] leading-tight">{course.title}</h3>
+                            <p className="text-xs text-[#A3ADA7] line-clamp-2">{course.description}</p>
+                            
+                            <div className="flex flex-wrap gap-2 pt-2">
+                               {course.skillsCovered?.slice(0, 3).map(skill => (
+                                 <span key={skill} className="px-2 py-0.5 rounded-full bg-[#1B211E] border border-[#29312C] text-[10px] text-[#A3ADA7]">
+                                   {skill}
+                                 </span>
+                               ))}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#29312C]">
+                              <div className="flex items-center gap-1.5 text-[11px] text-[#A3ADA7]">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{course.duration}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[11px] text-[#A3ADA7]">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                                <span>{course.difficulty}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-6">
+                             {isEnrolled ? (
+                               <button 
+                                 disabled 
+                                 className="w-full py-2.5 bg-[#1B211E] text-[#78D98A] text-xs font-bold rounded-xl border border-[#78D98A]/30 flex items-center justify-center gap-2 cursor-default"
+                               >
+                                 <CheckCircle2 className="w-4 h-4" />
+                                 <span>Already Enrolled</span>
+                               </button>
+                             ) : (
+                               <button 
+                                 onClick={() => handleEnroll(course.id!)}
+                                 disabled={isEnrolling === course.id}
+                                 className="w-full py-2.5 bg-[#32D6B0] hover:bg-[#78D98A] text-[#0A0D0C] text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                               >
+                                 {isEnrolling === course.id ? (
+                                   <Loader2 className="w-4 h-4 animate-spin" />
+                                 ) : (
+                                   <Plus className="w-4 h-4" />
+                                 )}
+                                 <span>Enroll Now</span>
+                               </button>
+                             )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {catalogue.length === 0 && (
+                       <div className="col-span-full py-12 text-center bg-[#151A18] rounded-2xl border border-[#29312C]">
+                          <BookOpen className="w-10 h-10 text-[#A3ADA7] mx-auto mb-3 opacity-20" />
+                          <p className="text-sm font-semibold text-[#F5F7F6]">No Courses Available</p>
+                          <p className="text-xs text-[#A3ADA7] mt-1">The course catalogue is being updated. Check back soon.</p>
+                       </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -995,8 +1174,6 @@ Please evaluate with: Communication Score (out of 100), Technical Score (out of 
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
           {/* ========================================================= */}
           {/* 2. SKILL GAP TAB per specification                        */}

@@ -49,9 +49,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     { id: 'n-3', text: 'Curriculum syllabus updated for Generative AI track', time: 'Yesterday', unread: false },
   ];
 
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await authService.logout();
+    window.location.replace('/login');
   };
 
   const getRoleBadge = (role?: string) => {

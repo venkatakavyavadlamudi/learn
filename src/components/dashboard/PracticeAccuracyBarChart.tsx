@@ -81,13 +81,13 @@ export const PracticeAccuracyBarChart: React.FC<PracticeAccuracyBarChartProps> =
               <span className="absolute -top-3.5 right-0 text-[9px] font-mono text-[#F2D64B]">75% Benchmark</span>
             </div>
 
-            {topics.map((item) => {
+            {topics.map((item, idx) => {
               const isSelected = selectedTopic?.topic === item.topic;
               const barColorClass = getBarColor(item.accuracy);
 
               return (
                 <div
-                  key={item.topic}
+                  key={`${item.topic || 'topic'}-${idx}`}
                   onClick={() => setSelectedTopic(item)}
                   className="flex flex-col items-center h-full justify-end group cursor-pointer"
                 >

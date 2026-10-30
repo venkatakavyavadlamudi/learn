@@ -43,11 +43,25 @@ export const Login: React.FC = () => {
   const [view, setView] = useState<'login' | 'forgot-password'>('login');
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resetCooldown > 0) {
+      timer = setTimeout(() => setResetCooldown(resetCooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resetCooldown]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError(null);
     setResendNotice(null);
+
+    if (resetCooldown > 0) {
+      setServerError(`Please wait ${resetCooldown} seconds before requesting another reset link.`);
+      return;
+    }
 
     if (!resetEmail.trim()) {
       setErrors({ resetEmail: 'Email is required' });
@@ -65,11 +79,22 @@ export const Login: React.FC = () => {
       if (res.success) {
         setResendNotice('If an account exists for this email, you will receive a password reset link. Please check your inbox and spam folder.');
         setResetEmail('');
+        setResetCooldown(60); // Start 60s cooldown on success
       } else {
-        setServerError(res.error || 'Failed to send reset link.');
+        if (res.error?.toLowerCase().includes('rate limit exceeded') || res.error?.includes('429')) {
+          setServerError('Email rate limit exceeded. Please wait 60 seconds before trying again.');
+          setResetCooldown(60);
+        } else {
+          setServerError(res.error || 'Failed to send reset link.');
+        }
       }
     } catch (err: any) {
-      setServerError(err.message || 'An error occurred. Please try again.');
+      if (err.status === 429 || err.message?.toLowerCase().includes('rate limit exceeded')) {
+        setServerError('Email rate limit exceeded. Please wait 60 seconds before trying again.');
+        setResetCooldown(60);
+      } else {
+        setServerError(err.message || 'An error occurred. Please try again.');
+      }
     } finally {
       setResetLoading(false);
     }
@@ -259,7 +284,7 @@ export const Login: React.FC = () => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={resetLoading}
+                  disabled={resetLoading || resetCooldown > 0}
                   className="w-full flex justify-center items-center py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold text-[#0A0D0C] gradient-uniconnect hover:opacity-95 focus:outline-none disabled:opacity-50 transition-opacity shadow-md glow-teal-sm cursor-pointer"
                 >
                   {resetLoading ? (
@@ -267,6 +292,8 @@ export const Login: React.FC = () => {
                       <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#0A0D0C]" />
                       <span>Sending link...</span>
                     </>
+                  ) : resetCooldown > 0 ? (
+                    <span>Wait {resetCooldown}s</span>
                   ) : (
                     <span>Send Reset Link</span>
                   )}

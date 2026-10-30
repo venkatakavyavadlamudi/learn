@@ -98,14 +98,14 @@ export const SkillsComparisonChart: React.FC<SkillsComparisonChartProps> = ({
 
         {/* Horizontal Bars */}
         <div className="space-y-3.5 mt-3">
-          {filteredSkills.map((skill) => {
+          {filteredSkills.map((skill, idx) => {
             const gap = skill.current - skill.target;
             const isAhead = gap >= 0;
             const isSelected = activeSkill === skill.name;
 
             return (
               <div
-                key={skill.name}
+                key={`${skill.name || 'skill'}-${idx}`}
                 onClick={() => {
                   setActiveSkill(isSelected ? null : skill.name);
                   onSkillSelect?.(skill);

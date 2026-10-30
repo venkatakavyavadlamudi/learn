@@ -16,17 +16,18 @@ export const ResetPassword: React.FC = () => {
   useEffect(() => {
     // Check if we have an active session (which Supabase should have established from the URL fragment)
     const checkSession = async () => {
-      const { data } = await authService.getSupabaseStatus();
-      if (isSupabaseConfigured() && !authService.isAuthenticated()) {
-        // Wait a moment for Supabase to process the hash
-        setTimeout(async () => {
-          if (!supabase) return;
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (!sessionData.session) {
-            setError('Your password reset link is invalid or has expired. Please request a new one.');
-          }
-        }, 1500);
-      }
+      if (!isSupabaseConfigured() || !supabase) return;
+      
+      // Give Supabase SDK a moment to parse the hash/fragment into a session
+      setTimeout(async () => {
+        if (!supabase) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError('Your password reset link is invalid or has expired. Please request a new one from the login page.');
+        } else {
+          console.log('[LearnAI Auth] Recovery session verified.');
+        }
+      }, 800);
     };
     checkSession();
   }, []);

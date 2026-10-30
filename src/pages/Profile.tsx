@@ -3,6 +3,7 @@ import { useRouter } from '../context/RouterContext';
 import { authService } from '../services/authService';
 import { User, StudentProfile } from '../types';
 import { DEFAULT_PROFILE } from '../data/sampleStudentData';
+import { supabase } from '../services/supabaseClient';
 import {
   User as UserIcon,
   Mail,
@@ -28,17 +29,50 @@ export const Profile: React.FC = () => {
   const [careerGoal, setCareerGoal] = useState('Data Analyst');
   const [newSkillInput, setNewSkillInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [supportTeam, setSupportTeam] = useState<{ trainer?: any; mentor?: any } | null>(null);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
     if (!user) {
       navigate('/login');
-    } else {
-      setCurrentUser(user);
-      setName(user.name);
-      setPhone(user.phone || '');
-      const existingProfile = authService.getProfile(user.id);
-      setProfile(existingProfile);
+      return;
+    }
+    
+    setCurrentUser(user);
+    setName(user.name);
+    setPhone(user.phone || '');
+    const existingProfile = authService.getProfile(user.id);
+    setProfile(existingProfile);
+
+    // Fetch support team if student
+    const roleNormalized = String(user.role || '').toLowerCase();
+    if (roleNormalized === 'student') {
+      const fetchSupport = async () => {
+        if (!supabase) return;
+        try {
+          const { data: stu } = await supabase
+            .from('students')
+            .select('trainer_id, mentor_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (stu) {
+            const team: any = {};
+            if (stu.trainer_id) {
+              const { data: trn } = await supabase.from('trainers').select('*').eq('trainer_id', stu.trainer_id).maybeSingle();
+              team.trainer = trn;
+            }
+            if (stu.mentor_id) {
+              const { data: men } = await supabase.from('mentors').select('*').eq('mentor_id', stu.mentor_id).maybeSingle();
+              team.mentor = men;
+            }
+            setSupportTeam(team);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch support team in profile', err);
+        }
+      };
+      fetchSupport();
     }
   }, [navigate]);
 
@@ -95,6 +129,8 @@ export const Profile: React.FC = () => {
     : currentUser.Organization_ID
     ? currentUser.Organization_ID
     : null;
+
+  const isStudent = roleNormalized === 'student';
 
   return (
     <div className="bg-[#0A0D0C] text-[#F5F7F6] min-h-screen py-10 sm:py-14">
@@ -309,6 +345,57 @@ export const Profile: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Support Team (For Students Only) */}
+            {isStudent && (
+              <div className="pt-6 border-t border-[#29312C] space-y-4">
+                <div className="flex items-center gap-2 pb-1">
+                  <ShieldCheck className="w-4 h-4 text-[#32D6B0]" />
+                  <h3 className="text-sm font-bold text-[#F5F7F6]">My Dedicated Support Team</h3>
+                </div>
+                <p className="text-[11px] text-[#A3ADA7] leading-relaxed">
+                  Your institution has allocated specific faculty members to guide your technical training and career development.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  {/* Trainer */}
+                  <div className="p-4 rounded-xl bg-[#0A0D0C] border border-[#29312C] flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#32D6B0]/10 flex items-center justify-center shrink-0 border border-[#32D6B0]/20">
+                      <GraduationCap className="w-5 h-5 text-[#32D6B0]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-[#A3ADA7] uppercase font-bold tracking-wider mb-0.5">Primary Trainer</p>
+                      <p className="text-sm font-bold text-[#F5F7F6] truncate">
+                        {supportTeam?.trainer?.full_name || 'Assignment Pending'}
+                      </p>
+                      {supportTeam?.trainer && (
+                        <p className="text-[11px] text-[#32D6B0] truncate mt-0.5 font-medium">
+                          {supportTeam.trainer.specialization}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mentor */}
+                  <div className="p-4 rounded-xl bg-[#0A0D0C] border border-[#29312C] flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#B4E85A]/10 flex items-center justify-center shrink-0 border border-[#B4E85A]/20">
+                      <Award className="w-5 h-5 text-[#B4E85A]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-[#A3ADA7] uppercase font-bold tracking-wider mb-0.5">Career Mentor</p>
+                      <p className="text-sm font-bold text-[#F5F7F6] truncate">
+                        {supportTeam?.mentor?.full_name || 'Assignment Pending'}
+                      </p>
+                      {supportTeam?.mentor && (
+                        <p className="text-[11px] text-[#B4E85A] truncate mt-0.5 font-medium">
+                          {supportTeam.mentor.specialization}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Save Button */}
             <div className="pt-4 border-t border-[#29312C] flex justify-end">

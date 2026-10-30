@@ -83,11 +83,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [currentPath]);
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     setUserDropdownOpen(false);
     setMobileMenuOpen(false);
-    navigate('/login');
+    window.location.replace('/login');
   };
 
   const handleSectionClick = (sectionId: string) => {

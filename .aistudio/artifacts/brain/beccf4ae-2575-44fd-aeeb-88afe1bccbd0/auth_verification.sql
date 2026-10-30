@@ -25,8 +25,9 @@ END $$;
 ALTER TABLE public.learnai_users ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can read own record" ON public.learnai_users;
-CREATE POLICY "Users can read own record" ON public.learnai_users
-    FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Allow read access to learnai_users" ON public.learnai_users;
+CREATE POLICY "Allow read access to learnai_users" ON public.learnai_users
+    FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Users can insert own record" ON public.learnai_users;
 CREATE POLICY "Users can insert own record" ON public.learnai_users

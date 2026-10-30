@@ -45,9 +45,9 @@ export const CourseProgressList: React.FC<CourseProgressListProps> = ({
         </div>
       ) : (
         <div className="space-y-3">
-          {safeCourses.map((course) => (
+          {safeCourses.map((course, idx) => (
           <div
-            key={course.id}
+            key={`${course.id || 'crs'}-${idx}`}
             onClick={() => onSelectCourse?.(course.id)}
             className="p-3.5 rounded-xl bg-[#101412] border border-[#29312C] hover:border-[#32D6B0]/40 transition-all cursor-pointer group"
           >

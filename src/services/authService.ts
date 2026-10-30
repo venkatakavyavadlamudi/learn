@@ -84,83 +84,52 @@ class AuthService {
     }
 
     const cleanEmail = email ? email.trim().toLowerCase() : '';
-    
-    // Safeguard: Do not attempt UUID lookup if the ID is not a valid UUID (e.g. legacy 'usr_' IDs)
-    const isLegacyId = typeof userId === 'string' && userId.startsWith('usr_');
-    const effectiveUserId = isLegacyId ? null : userId;
+    const effectiveUserId = userId;
 
-    console.log('[LearnAI Auth] [DEBUG] Resolving role. UUID:', effectiveUserId || 'NONE', 'Email:', cleanEmail);
+    console.log('[LearnAI Auth] Resolving role. UUID:', effectiveUserId, 'Email:', cleanEmail);
 
     try {
       // 1. Primary lookup: learnai_users by user_id UUID
       if (effectiveUserId) {
-        console.log('[LearnAI Auth] [DEBUG] Querying learnai_users by UUID:', effectiveUserId);
         const { data: uData, error: uErr } = await supabase
           .from('learnai_users')
           .select('user_id, email, role')
           .eq('user_id', effectiveUserId);
 
         if (uErr) {
-          console.error('[LearnAI Auth] [DEBUG] UUID lookup error:', uErr);
+          console.error('[LearnAI Auth] UUID lookup error:', uErr);
           throw new Error(`Database error querying user role by UUID: ${uErr.message}`);
         }
 
         if (uData && uData.length > 0 && uData[0].role) {
           const resolvedRole = String(uData[0].role).toLowerCase().trim() as UserRole;
-          console.log('[LearnAI Auth] Role resolved from learnai_users by UUID:', resolvedRole);
-
-          // Update email if missing
-          if (cleanEmail && !uData[0].email) {
-            await supabase.from('learnai_users').update({ email: cleanEmail, updated_at: new Date().toISOString() }).eq('user_id', effectiveUserId);
-          }
           return resolvedRole;
         }
       }
 
       // 2. Secondary lookup: learnai_users by email
       if (cleanEmail) {
-        console.log('[LearnAI Auth] [DEBUG] Querying learnai_users by email:', cleanEmail);
         const { data: eData, error: eErr } = await supabase
           .from('learnai_users')
           .select('user_id, email, role')
           .ilike('email', cleanEmail);
 
         if (eErr) {
-          console.error('[LearnAI Auth] [DEBUG] Email lookup error:', eErr);
+          console.error('[LearnAI Auth] Email lookup error:', eErr);
           throw new Error(`Database error querying user role by email: ${eErr.message}`);
         }
 
         if (eData && eData.length > 0 && eData[0].role) {
           const dbUserId = eData[0].user_id;
-          
-          // STRICT CHECK: If a UUID exists in the DB for this email, it MUST match the current session UUID.
-          if (effectiveUserId && dbUserId && dbUserId !== effectiveUserId) {
-            console.error('[LearnAI Auth] UUID mismatch detected for email:', cleanEmail, 'DB UUID:', dbUserId, 'Session UUID:', effectiveUserId);
-            throw new Error('Authentication session mismatch: Your account ID does not match our records. Please contact support.');
-          }
-
-          const resolvedRole = String(eData[0].role).toLowerCase().trim() as UserRole;
-          
-          // Link UUID if missing in DB
           if (effectiveUserId && !dbUserId) {
-            console.log('[LearnAI Auth] Linking UUID to existing email record:', effectiveUserId);
             await supabase.from('learnai_users').update({ user_id: effectiveUserId, updated_at: new Date().toISOString() }).eq('email', cleanEmail);
           }
-          
-          console.log('[LearnAI Auth] Role resolved from learnai_users by email:', resolvedRole);
+          const resolvedRole = String(eData[0].role).toLowerCase().trim() as UserRole;
           return resolvedRole;
         }
       }
 
-      // 3. User not found
-      console.warn('[LearnAI Auth] [DEBUG] User NOT found in learnai_users:', cleanEmail || effectiveUserId);
-      
-      // If we are authenticated but have no role record, we should allow recovery
-      if (effectiveUserId) {
-        throw new Error('Your account profile was not found. Please click "Complete Registration" to finalize your setup.');
-      }
-      
-      throw new Error('Your account was not found in our records. Please contact the administrator.');
+      throw new Error('Role configuration error: Your account authenticated successfully, but no role record was found in public.learnai_users.');
     } catch (err: any) {
       console.error('[LearnAI Auth] fetchAuthoritativeRole exception:', err?.message || err);
       throw err;
@@ -637,8 +606,8 @@ class AuthService {
         // Create corresponding entries in public.learnai_users (AUTHORITATIVE), students, and app_users
         try {
           const now = new Date().toISOString();
-          // 1. Authoritative Role Record
-          const { error: roleErr } = await supabase.from('learnai_users').upsert(
+          // 1. Authoritative Role Record: Upsert into learnai_users with student role by default
+          let { error: roleErr } = await supabase.from('learnai_users').upsert(
             {
               user_id: data.user.id,
               email: cleanEmail,
@@ -648,6 +617,21 @@ class AuthService {
             },
             { onConflict: 'email' }
           );
+
+          if (roleErr) {
+            // Retry with user_id onConflict in case user_id is the primary constraint
+            const retryRes = await supabase.from('learnai_users').upsert(
+              {
+                user_id: data.user.id,
+                email: cleanEmail,
+                role: 'student',
+                created_at: now,
+                updated_at: now,
+              },
+              { onConflict: 'user_id' }
+            );
+            roleErr = retryRes.error;
+          }
 
           if (roleErr) {
              console.error('[LearnAI Auth] Role record creation failed:', roleErr);
@@ -758,201 +742,73 @@ class AuthService {
   ): Promise<{ success: boolean; user?: User; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Supabase Auth (if configured)
-    if (isSupabaseConfigured() && supabase) {
-      let authResult: { data: any; error: any } | null = null;
-      try {
-        console.log('[LearnAI Auth] Initiating Supabase signInWithPassword for domain:', cleanEmail.includes('@') ? cleanEmail.split('@')[1] : 'unknown');
-        authResult = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-      } catch (sbErr: any) {
-        console.warn('[LearnAI Auth] Supabase sign-in attempt exception:', sbErr?.message);
-      }
-
-      if (authResult?.data?.user) {
-        const { user: sbUser } = authResult.data;
-        console.log('[LearnAI Auth] Supabase authentication succeeded. User ID:', sbUser.id);
-        
-        try {
-          const profileRole = await this.fetchAuthoritativeRole(sbUser.id, cleanEmail);
-          console.log('[LearnAI Diagnostic] 4. Role Held in Application State / Storage (login):', profileRole);
-          const dashboardRoute = this.getRoleDashboardPath(profileRole);
-          console.log('[LearnAI Diagnostic] 5. Selected Route (login):', dashboardRoute);
-
-          // Fetch profile data for name/phone
-          let profileData: any = null;
-          try {
-            const { data: pr } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', sbUser.id)
-              .maybeSingle();
-            profileData = pr;
-          } catch {}
-
-          try {
-            // Verify or link student record
-            const { data: studentRecord } = await supabase
-              .from('students')
-              .select('student_id, user_id, email')
-              .eq('email', cleanEmail)
-              .maybeSingle();
-
-            if (studentRecord) {
-              if (!studentRecord.user_id || studentRecord.user_id !== sbUser.id) {
-                await supabase
-                  .from('students')
-                  .update({ user_id: sbUser.id })
-                  .eq('student_id', studentRecord.student_id);
-              }
-            } else if (profileRole === 'student') {
-              const studentId = 'stu_' + sbUser.id.replace(/-/g, '').slice(0, 10);
-              await supabase.from('students').insert({
-                student_id: studentId,
-                user_id: sbUser.id,
-                full_name: profileData?.full_name || sbUser.user_metadata?.full_name || cleanEmail.split('@')[0],
-                email: cleanEmail,
-              });
-            }
-          } catch (profileErr: any) {
-            console.warn('[LearnAI Auth] Profile resolution warning:', profileErr?.message);
-          }
-
-          const user: User = {
-            id: sbUser.id,
-            userId: sbUser.id,
-            name:
-              profileData?.full_name ||
-              sbUser.user_metadata?.full_name ||
-              sbUser.user_metadata?.name ||
-              cleanEmail.split('@')[0],
-            email: sbUser.email || cleanEmail,
-            phone: profileData?.phone || sbUser.user_metadata?.phone,
-            role: profileRole,
-            status: (profileData?.status || 'active') as AccountStatus,
-            emailVerified: Boolean(sbUser.email_confirmed_at || true),
-            createdAt: profileData?.created_at || sbUser.created_at,
-            authProvider: 'supabase',
-            profile: {
-              fullName:
-                profileData?.full_name ||
-                sbUser.user_metadata?.full_name ||
-                cleanEmail.split('@')[0],
-              email: sbUser.email || cleanEmail,
-              learningLevel: 'Undergraduate',
-              skills: [],
-              careerGoal: 'Software Engineer',
-              targetRole: 'Software Engineer',
-            },
-          };
-
-          localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          localStorage.setItem('user', JSON.stringify(user));
-          
-          // Cleanup: Remove legacy usr_ records from the 'users' array
-          const users = this.getLocalStorageUsers();
-          const cleanedUsers = users.filter((u: any) => !u.id.startsWith('usr_'));
-          localStorage.setItem('users', JSON.stringify(cleanedUsers));
-
-          this.notify(user);
-
-          return { success: true, user };
-        } catch (roleErr: any) {
-          console.error('[LearnAI Auth] Role resolution failed after successful authentication:', roleErr.message);
-          return { success: false, error: roleErr.message };
-        }
-      }
-
-      if (authResult?.error) {
-        const sbError = authResult.error;
-        console.warn('[LearnAI Auth] Supabase authentication failed. Status:', sbError.status, 'Code:', (sbError as any).code, 'Message:', sbError.message);
-
-        // If email is unconfirmed, report accurate, actionable error immediately
-        if (
-          (sbError as any).code === 'email_not_confirmed' ||
-          sbError.message?.toLowerCase().includes('email not confirmed')
-        ) {
-          return {
-            success: false,
-            error: 'Your email address has not been confirmed yet. Please verify your email via the confirmation link sent to your inbox.',
-          };
-        }
-        
-        // If it's a genuine invalid credentials error, we might still want to check local fallbacks
-        // especially if we have demo accounts or legacy local-only accounts.
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      return { success: false, error: 'Supabase authentication is not configured.' };
     }
 
-    // 2. Check local accounts (Crucial: Preserves existing logged-in Admin account and test accounts)
-    const localUsers = this.getLocalStorageUsers();
-    const matched = localUsers.find(
-      (u: any) =>
-        u.email &&
-        u.email.trim().toLowerCase() === cleanEmail &&
-        u.password === password
-    );
-
-    if (matched) {
-      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(matched));
-      localStorage.setItem('currentUser', JSON.stringify(matched));
-      localStorage.setItem('user', JSON.stringify(matched));
-      this.notify(matched);
-      return { success: true, user: matched };
-    }
-
-    // 3. Fallback to Backend API (/api/auth/login)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password }),
+      console.log('[LearnAI Auth] Authenticating with Supabase for:', cleanEmail);
+      const authResult = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
       });
 
-      const data = await res.json();
-      if (res.ok && data.success && data.user) {
-        const user: User = {
-          id: data.user.userId,
-          name: data.user.name,
-          email: data.user.email,
-          role: data.user.role,
-          status: data.user.status,
-          Organization_ID: data.user.Organization_ID !== undefined ? data.user.Organization_ID : data.user.profile?.Organization_ID,
-          organizationName: data.user.organizationName || data.user.profile?.collegeName || data.user.profile?.organizationName,
-          emailVerified: data.user.emailVerified,
-          emailVerificationToken: data.user.emailVerificationToken,
-          createdAt: data.user.createdAt,
-          approvedAt: data.user.approvedAt,
-          profile: data.user.profile,
-        };
-
-        localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        localStorage.setItem('user', JSON.stringify(user));
-        this.notify(user);
-
-        return { success: true, user };
+      if (authResult.error) {
+        console.warn('[LearnAI Auth] Supabase authentication failed:', authResult.error.message);
+        return { success: false, error: authResult.error.message };
       }
-    } catch (apiErr: any) {
-      console.warn('[LearnAI Auth] Local backend login attempt notice:', apiErr?.message);
-    }
 
-    // 4. Final check: If we reach here, and Supabase was checked, provide specific guidance
-    if (isSupabaseConfigured() && supabase) {
-      // Note: We cannot query learnai_users reliably without authentication due to RLS.
-      // Instead, we return a more helpful error that suggests password reset if they are sure the email is right.
-      return {
-        success: false,
-        error: 'Invalid email or password. If you recently migrated your account, you may need to reset your password.',
+      if (!authResult.data?.user || !authResult.data?.session) {
+        return { success: false, error: 'Authentication failed. No session returned.' };
+      }
+
+      const sbUser = authResult.data.user;
+      console.log('[LearnAI Auth] Supabase authentication succeeded. User ID:', sbUser.id);
+
+      let profileRole: UserRole;
+      try {
+        profileRole = await this.fetchAuthoritativeRole(sbUser.id, cleanEmail);
+      } catch (roleErr: any) {
+        console.error('[LearnAI Auth] Role resolution failed after successful authentication:', roleErr.message);
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          error: roleErr.message || 'Role configuration error: No role record found for this user in public.learnai_users.',
+        };
+      }
+
+      const user: User = {
+        id: sbUser.id,
+        userId: sbUser.id,
+        name: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || cleanEmail.split('@')[0],
+        email: sbUser.email || cleanEmail,
+        phone: sbUser.user_metadata?.phone,
+        role: profileRole,
+        status: 'active',
+        emailVerified: Boolean(sbUser.email_confirmed_at || true),
+        createdAt: sbUser.created_at,
+        authProvider: 'supabase',
+        profile: {
+          fullName: sbUser.user_metadata?.full_name || cleanEmail.split('@')[0],
+          email: sbUser.email || cleanEmail,
+          learningLevel: 'Undergraduate',
+          skills: [],
+          careerGoal: 'Software Engineer',
+          targetRole: 'Software Engineer',
+        },
       };
-    }
 
-    return {
-      success: false,
-      error: 'Invalid email or password. Please verify your credentials or create a new account.',
-    };
+      localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(user));
+
+      this.notify(user);
+
+      return { success: true, user };
+    } catch (err: any) {
+      console.error('[LearnAI Auth] Login exception:', err);
+      return { success: false, error: err.message || 'An unexpected error occurred during login.' };
+    }
   }
 
   // --- DEDICATED QUICK DEMO ACCOUNTS AUTHENTICATION ---
@@ -1278,22 +1134,59 @@ class AuthService {
 
   public async logout(): Promise<void> {
     if (typeof window === 'undefined') return;
+    
+    console.log('[LearnAI Auth] Initiating global sign-out...');
+
+    // 1. Clear Supabase session if configured
     if (isSupabaseConfigured() && supabase) {
       try {
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.warn('[LearnAI Auth] Supabase signOut error:', error.message);
+        }
       } catch (err) {
-        console.warn('[LearnAI] Supabase signOut notice:', err);
+        console.warn('[LearnAI Auth] Supabase signOut exception:', err);
       }
     }
-    localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('user');
+
+    // 2. Clear all application-specific storage keys
+    try {
+      const keysToRemove = [
+        STORAGE_KEY_CURRENT_USER,
+        'currentUser',
+        'user',
+        'learnai_user_role',
+        'learnai_user_id',
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase.auth.token'
+      ];
+
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Clear all keys starting with 'learnai_' to handle dynamic dashboard keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('learnai_') || key.includes('supabase'))) {
+          localStorage.removeItem(key);
+          i--; // Adjust index after removal
+        }
+      }
+    } catch (e) {
+      console.warn('[LearnAI Auth] LocalStorage cleanup notice:', e);
+    }
+
+    // 3. Clear session storage
     try {
       sessionStorage.clear();
-    } catch {
+    } catch (e) {
       // ignore
     }
+
+    // 4. Notify listeners that user is now null
     this.notify(null);
+    
+    console.log('[LearnAI Auth] Sign-out complete. State cleared.');
   }
 
   // --- ADMIN APIs ---

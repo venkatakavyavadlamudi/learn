@@ -97,7 +97,10 @@ export const MentorDashboard: React.FC = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const data = await dashboardDataService.getMentorData(user.id, user.email);
+        const data = await dashboardDataService.getMentorData(user.id, user.email, {
+          dateRange,
+          courseId: selectedCourse,
+        });
         setDashboardData(data);
       } catch (err) {
         console.error('Failed to load mentor dashboard data', err);
@@ -107,7 +110,7 @@ export const MentorDashboard: React.FC = () => {
     };
 
     loadData();
-  }, [navigate]);
+  }, [navigate, dateRange, selectedCourse]);
 
   if (!currentUser) return null;
 
@@ -307,6 +310,23 @@ export const MentorDashboard: React.FC = () => {
             </div>
           ) : (
             <>
+              {/* Query Warning Banner for RLS or DB Permissions */}
+              {dashboardData?.queryErrors && dashboardData.queryErrors.length > 0 && (
+                <div className="bg-[#1C1613] border border-[#FF7272]/40 rounded-xl p-4 text-xs space-y-2 text-[#FF7272]">
+                  <div className="flex items-center gap-2 font-semibold text-[#FF8A8A]">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-[#FF7272]" />
+                    <span>Database Query Warning ({dashboardData.queryErrors.length} issues)</span>
+                  </div>
+                  <ul className="list-disc pl-5 space-y-1 font-mono text-[11px] text-[#FFA8A8]">
+                    {dashboardData.queryErrors.map((err, idx) => (
+                      <li key={idx}>{err}</li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-[#A3ADA7]">
+                    Please run <code className="bg-[#101412] px-1.5 py-0.5 rounded text-[#32D6B0]">update_mentor_rls.sql</code> in the Supabase SQL Editor if permissions need to be updated.
+                  </p>
+                </div>
+              )}
               {/* ========================================================= */}
               {/* 1. OVERVIEW DASHBOARD                                     */}
               {/* ========================================================= */}

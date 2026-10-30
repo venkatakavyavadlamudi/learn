@@ -182,7 +182,7 @@ export const WeeklyStudyLineChart: React.FC<WeeklyStudyLineChartProps> = ({
               const isHovered = hoverIndex === i;
 
               return (
-                <g key={d.day}>
+                <g key={`${d.day || 'day'}-${i}`}>
                   {/* Invisible touch target */}
                   <rect
                     x={x - 20}

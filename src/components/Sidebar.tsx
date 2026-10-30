@@ -34,6 +34,7 @@ import {
   GraduationCap,
   Sparkles,
   Users,
+  UserPlus,
 } from 'lucide-react';
 
 export interface SidebarMenuItem {
@@ -124,6 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'Main',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'course_catalogue', label: 'Course Catalogue', icon: Sparkles },
         { id: 'my_learning', label: 'My Learning', icon: BookOpen },
         { id: 'my_courses', label: 'My Courses', icon: Layers },
         { id: 'learning_roadmap', label: 'Learning Roadmap', icon: Compass },
@@ -256,6 +258,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'User Management',
       items: [
         { id: 'students', label: 'Students', icon: Users },
+        { id: 'staff_allocation', label: 'Staff Allocation', icon: UserPlus },
         { id: 'mentors', label: 'Mentors', icon: Compass },
         { id: 'trainers', label: 'Trainers', icon: Award },
         { id: 'user_management', label: 'User Role Management', icon: ShieldCheck },
@@ -320,10 +323,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (onCloseMobile) onCloseMobile();
   };
 
-  const confirmLogout = () => {
-    authService.logout();
-    setShowLogoutModal(false);
-    navigate('/login');
+  const confirmLogout = async () => {
+    try {
+      await authService.logout();
+      setShowLogoutModal(false);
+      // Use replace to prevent back-button access to the dashboard
+      window.location.replace('/login');
+    } catch (err) {
+      console.error('[LearnAI Sidebar] Sign out failed:', err);
+      setShowLogoutModal(false);
+      window.location.replace('/login');
+    }
   };
 
   // User avatar initials
